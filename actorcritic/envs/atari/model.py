@@ -10,7 +10,7 @@ from actorcritic.policies import SoftmaxPolicy
 
 class AtariModel(ActorCriticModel):
 
-    def __init__(self, observation_space, action_space, conv3_num_filters, random_seed=None, name=None):
+    def __init__(self, observation_space, action_space, conv3_num_filters=64, random_seed=None, name=None):
         super().__init__(observation_space, action_space)
 
         assert isinstance(action_space, gym.spaces.Discrete)

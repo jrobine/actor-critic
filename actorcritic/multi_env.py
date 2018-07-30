@@ -107,7 +107,7 @@ class SubprocessEnv(gym.Env):
         self._initialized = True
 
     def _communicate(self, command, arg=None):
-        # TODO handle BrokenPipeError on exit
+        # TODO handle BrokenPipeError, ConnectionResetError, EOFError on exit
         self._parent_connection.send((command, arg))
         return self._parent_connection.recv()
 

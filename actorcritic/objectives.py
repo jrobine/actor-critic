@@ -1,7 +1,7 @@
+from abc import ABCMeta, abstractmethod
+
 import numpy as np
 import tensorflow as tf
-
-from abc import ABCMeta, abstractmethod
 
 
 class ActorCriticObjective(object, metaclass=ABCMeta):
@@ -60,7 +60,9 @@ class A2CObjective(ActorCriticObjective):
                 policy_objective = tf.reduce_mean(advantage_function * log_prob)
 
             with tf.name_scope('entropy_regularization'):
-                entropy_regularization = entropy_regularization_strength * policy.entropy
+                with tf.name_scope('mean_entropy'):
+                    mean_entropy = tf.reduce_mean(policy.entropy)
+                entropy_regularization = entropy_regularization_strength * mean_entropy
 
             # full policy objective function with entropy regularization:
             # J(θ) = log(π(s, a | θ)) * advantages + beta * entropy(π(θ))
@@ -84,7 +86,8 @@ class A2CObjective(ActorCriticObjective):
         return self._baseline_loss
 
 
-def _discount_matrices(terminals, discount_factor):
+def _discount(values, terminals, discount_factor):
+
     def fn(terminals, discount_factor):
         batch_size, num_steps = terminals.shape
 
@@ -103,37 +106,20 @@ def _discount_matrices(terminals, discount_factor):
 
         return discount_factors
 
-    return tf.py_func(fn, [terminals, discount_factor], tf.float32, stateful=True)
+    discount_matrices = tf.py_func(fn, [terminals, discount_factor], tf.float32, stateful=True)
 
-
-def _discount_with_matrices(values, matrices):
     values = tf.expand_dims(values, axis=1)
-    discounted_values = tf.matmul(values, matrices)
+    discounted_values = tf.matmul(values, discount_matrices)
     return tf.squeeze(discounted_values, axis=1)
 
 
-def _discount(values, terminals, discount_factor):
-    matrices = _discount_matrices(terminals, discount_factor)
-    return _discount_with_matrices(values, matrices)
-
-
 def _discount_bootstrap(values, terminals, discount_factor):
+    # terminal trajectories do not need bootstrapping, so returns discounted bootstrapped values
+    # for all non-terminal sub-trajectories
+
     def fn(terminals):
-        num_trajectories, num_steps = terminals.shape
-        discount_factors = np.zeros_like(terminals, dtype=np.float32)
+        # returns exponentiated discount factors for all non-terminal sub-trajectories
+        return np.flip(np.cumprod(np.cumprod(np.flip(np.invert(terminals), axis=1), axis=1, dtype=np.int32) * discount_factor, axis=1, dtype=np.float32), axis=1)
 
-        # TODO improve
-        for i in range(num_trajectories):
-            last_terminal = -1
-            for t in reversed(range(num_steps)):
-                if terminals[i, t]:
-                    last_terminal = t
-                    break
-
-            for t in range(last_terminal + 1, num_steps):
-                discount_factors[i, t] = np.power(discount_factor, num_steps - t)
-
-        return discount_factors
-
-    matrix = tf.py_func(fn, [terminals], tf.float32, stateful=True)
-    return matrix * tf.expand_dims(values, axis=-1)
+    discount_factors = tf.py_func(fn, [terminals], tf.float32, stateful=True)
+    return discount_factors * tf.expand_dims(values, axis=-1)  # element-wise multiplication

@@ -6,8 +6,21 @@ import tensorflow as tf
 
 
 class ActorCriticModel(object, metaclass=ABCMeta):
+    """Contains a model (e.g. a neural net) that provides the functionalities required for actor-critic algorithms.
+    Provides a policy and a baseline (that is subtracted from the target values to compute the advantage) and their
+    placeholders.
+    """
 
     def __init__(self, observation_space, action_space):
+        """Create a new model and the placeholders with shapes determined by the `observation_space` and the
+        `action_space`.
+
+        Args:
+            observation_space: The `gym.spaces.Space` of the observations that will be passed to the
+            `observations_placeholder` and the `bootstrap_observations_placeholder`.
+            action_space: The `gym.spaces.Space` of the actions that will be passed to the `actions_placeholder`.
+        """
+
         self._observations_placeholder = None
         self._bootstrap_observations_placeholder = None
         self._actions_placeholder = None
@@ -22,34 +35,75 @@ class ActorCriticModel(object, metaclass=ABCMeta):
 
     @property
     def observations_placeholder(self):
+        """Provides the placeholder for the sampled observations.
+
+        Returns:
+            A placeholder.
+        """
         return self._observations_placeholder
 
     @property
     def bootstrap_observations_placeholder(self):
+        """Provides the placeholder for the sampled next observations. These are used to compute the values for
+        bootstrapping.
+
+        Returns:
+            A placeholder.
+        """
         return self._bootstrap_observations_placeholder
 
     @property
     def actions_placeholder(self):
+        """Provides the placeholder for the sampled actions.
+
+        Returns:
+            A placeholder.
+        """
         return self._actions_placeholder
 
     @property
     def rewards_placeholder(self):
+        """Provides the placeholder for the sampled rewards (scalars).
+
+        Returns:
+            A placeholder.
+        """
         return self._rewards_placeholder
 
     @property
     def terminals_placeholder(self):
+        """Provides the placeholder for the sampled terminals (booleans).
+
+        Returns:
+            A placeholder.
+        """
         return self._terminals_placeholder
 
     @property
     def policy(self):
+        """The policy used by this model.
+
+        Returns:
+            A `actorcritic.policies.Policy`.
+        """
         return self._policy
 
     @property
     def baseline(self):
+        """The baseline used by this model.
+
+        Returns:
+            A `actorcritic.baselines.Baseline`.
+        """
         return self._baseline
 
     @property
     def bootstrap_values(self):
+        """The bootstrapped values computed based on the observations passed to `bootstrap_observations_placeholder`.
+
+        Returns:
+            A tensor that computes the bootstrapped values.
+        """
         return self._bootstrap_values
 
     def _setup_placeholders(self, observation_space, action_space):
@@ -63,18 +117,52 @@ class ActorCriticModel(object, metaclass=ABCMeta):
             self._terminals_placeholder = tf.placeholder(dtype=tf.bool, shape=[None, None], name='terminals')
 
     def register_layers(self, layer_collection):
+        """Registers the layers of this model (neural net) in the specified LayerCollection (required for K-FAC).
+
+        Models that do not support K-FAC do not have to override this method.
+        In this case raises a NotImplementedError.
+
+        Args:
+            layer_collection: A `kfac.LayerCollection`.
+        """
         raise NotImplementedError()
 
-    def register_losses(self, layer_collection, random_seed=None):
-        self._policy.register_loss(layer_collection, random_seed)
-        self._baseline.register_loss(layer_collection, random_seed)
+    def register_predictive_distributions(self, layer_collection, random_seed=None):
+        """Registers the predictive distributions of the policy and the baseline in the specified LayerCollection
+        (required for K-FAC).
+
+        Args:
+            layer_collection: A `kfac.LayerCollection`.
+            random_seed: An optional random seed for sampling from the predictive distributions.
+        """
+
+        self._policy.register_predictive_distribution(layer_collection, random_seed)
+        self._baseline.register_predictive_distribution(layer_collection, random_seed)
 
     def sample_actions(self, observations, session):
+        """Samples actions from the policy based on the specified observations.
+
+        Args:
+            observations: The observations passed to `observations_placeholder`.
+            session: The session used to compute the values.
+
+        Returns:
+            A list containing the actions. The shape equals the shape of the observations.
+        """
         return session.run(self.policy.sample, feed_dict={
             self.observations_placeholder: observations
         }).tolist()
 
     def select_max_actions(self, observations, session):
+        """Selects actions from the policy that have the highest probability (mode) based on the specified observations.
+
+        Args:
+            observations: The observations passed to `observations_placeholder`.
+            session: The session used to compute the values.
+
+        Returns:
+            A list containing the actions. The shape equals the shape of the observations.
+        """
         return session.run(self.policy.mode, feed_dict={
             self.observations_placeholder: observations
         }).tolist()

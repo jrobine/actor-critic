@@ -126,6 +126,7 @@ class ClipGlobalNormOptimizer(tf.train.Optimizer):
         Args:
             optimizer: The original optimizer to clip gradients on.
             clip_norm: Value for global norm (tf.clip_by_global_norm).
+            name: An optional name for this optimizer.
         """
         super().__init__(use_locking=False, name='ClipGlobalNormOptimizer' if name is None else name)
         self._optimizer = optimizer
