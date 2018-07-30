@@ -1,14 +1,41 @@
 # Actor-Critic Reinforcement Learning
 
-This project tries to provide a clearer implementation of the A2C and ACKTR algorithms by OpenAI.   
+This project intends to provide a clearer and better documented implementation of the A2C and ACKTR algorithms by OpenAI.   
   
 Based on the paper by Wu, Mansimov, Liao, Grosse, and Ba (2017): https://arxiv.org/pdf/1708.05144.pdf  
 Original implementation: https://github.com/openai/baselines  
 
 ## Usage
 
+### Prerequisites
+
+The following dependencies need to be installed
+besides [TensorFlow](https://github.com/tensorflow/tensorflow) and [NumPy](https://github.com/numpy/numpy)
+(click links for further details):
+* [OpenAI gym](https://github.com/openai/gym). Install with:
+```
+$ pip install gym
+```
+* [KFAC for TensorFlow](https://github.com/tensorflow/kfac). You need the latest version (0.1.1), which currently is not hosted on PyPI. Install with:
+```
+$ pip install git+https://github.com/tensorflow/kfac
+```
+
+To use the Atari environments you need:
+* [OpenAI atari-py](https://github.com/openai/atari-py). Install with:
+```
+$ pip install atari-py
+```
+* [OpenCV for Python](https://github.com/skvark/opencv-python). Install with:
+```
+$ pip install opencv-python
+```
+
+This project is only tested with Python 3.6.5.
+
 ### Examples
 
-To train an Atari model run the following (see [a2c_acktr.py](actorcritic/examples/atari/a2c_acktr.py) for further details):  
-
-    $ python -m actorcritic.examples.atari.a2c_acktr  
+Run the following to train an Atari model (see [a2c_acktr.py](actorcritic/examples/atari/a2c_acktr.py) for further details):  
+```
+$ python -m actorcritic.examples.atari.a2c_acktr
+```
