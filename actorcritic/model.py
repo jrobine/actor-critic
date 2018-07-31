@@ -12,15 +12,14 @@ class ActorCriticModel(object, metaclass=ABCMeta):
     """
 
     def __init__(self, observation_space, action_space):
-        """Create a new model and the placeholders with shapes determined by the `observation_space` and the
-        `action_space`.
+        """Creates a new `ActorCriticModel`. Creates the placeholders.
 
         Args:
-            observation_space: The `gym.spaces.Space` of the observations that will be passed to the
-                `observations_placeholder` and the `bootstrap_observations_placeholder`. Used to create these
+            observation_space: A `gym.spaces.Space` that determines the shape of the observations that will be passed to
+                the `observations_placeholder` and the `bootstrap_observations_placeholder`. Used to create these
                 placeholders.
-            action_space: The `gym.spaces.Space` of the actions that will be passed to the `actions_placeholder`. Used
-                to create this placeholder.
+            action_space: A `gym.spaces.Space` that determines the shape of the actions that will be passed to the
+                `actions_placeholder`. Used to create this placeholder.
         """
         self._observations_placeholder = None
         self._bootstrap_observations_placeholder = None
@@ -85,7 +84,7 @@ class ActorCriticModel(object, metaclass=ABCMeta):
         """The policy used by this model.
 
         Returns:
-            A `actorcritic.policies.Policy`.
+            An `actorcritic.policies.Policy`.
         """
         return self._policy
 
@@ -94,13 +93,14 @@ class ActorCriticModel(object, metaclass=ABCMeta):
         """The baseline used by this model.
 
         Returns:
-            A `actorcritic.baselines.Baseline`.
+            An `actorcritic.baselines.Baseline`.
         """
         return self._baseline
 
     @property
     def bootstrap_values(self):
-        """The bootstrapped values computed based on the observations passed to `bootstrap_observations_placeholder`.
+        """The bootstrapped values that are computed based on the observations passed to
+        `bootstrap_observations_placeholder`.
 
         Returns:
             A `tf.Tensor` that computes the bootstrapped values.
@@ -118,10 +118,10 @@ class ActorCriticModel(object, metaclass=ABCMeta):
             self._terminals_placeholder = tf.placeholder(dtype=tf.bool, shape=[None, None], name='terminals')
 
     def register_layers(self, layer_collection):
-        """Registers the layers of this model (neural net) in the specified LayerCollection (required for K-FAC).
+        """Registers the layers of this model (neural net) in the specified `kfac.LayerCollection` (required for K-FAC).
 
         Models that do not support K-FAC do not have to override this method.
-        In this case raises a NotImplementedError.
+        In this case a `NotImplementedError` is raised.
 
         Args:
             layer_collection: A `kfac.LayerCollection`.
@@ -129,7 +129,7 @@ class ActorCriticModel(object, metaclass=ABCMeta):
         raise NotImplementedError()
 
     def register_predictive_distributions(self, layer_collection, random_seed=None):
-        """Registers the predictive distributions of the policy and the baseline in the specified LayerCollection
+        """Registers the predictive distributions of the policy and the baseline in the specified `kfac.LayerCollection`
         (required for K-FAC).
 
         Args:
@@ -143,11 +143,11 @@ class ActorCriticModel(object, metaclass=ABCMeta):
         """Samples actions from the policy based on the specified observations.
 
         Args:
-            observations: The observations passed to `observations_placeholder`.
+            observations: The observations that will be passed to the `observations_placeholder`.
             session: A `tf.Session` used to compute the values.
 
         Returns:
-            A list containing the actions. The shape equals the shape of the observations.
+            A list containing the actions. The shape equals the shape of `observations`.
         """
         return session.run(self.policy.sample, feed_dict={
             self.observations_placeholder: observations
@@ -157,11 +157,11 @@ class ActorCriticModel(object, metaclass=ABCMeta):
         """Selects actions from the policy that have the highest probability (mode) based on the specified observations.
 
         Args:
-            observations: The observations passed to `observations_placeholder`.
+            observations: The observations that will be passed to the `observations_placeholder`.
             session: A `tf.Session` used to compute the values.
 
         Returns:
-            A list containing the actions. The shape equals the shape of the observations.
+            A list containing the actions. The shape equals the shape of `observations`.
         """
         return session.run(self.policy.mode, feed_dict={
             self.observations_placeholder: observations

@@ -5,7 +5,7 @@ import tensorflow as tf
 
 
 class ActorCriticObjective(object, metaclass=ABCMeta):
-    """The objective takes an `actorcritic.model.ActorCriticModel` and determines how it is optimized. It defines the
+    """An objective takes an `actorcritic.model.ActorCriticModel` and determines how it is optimized. It defines the
     loss of the policy and the loss of the baseline, and can create train operations based on these losses.
     """
 
@@ -30,8 +30,8 @@ class ActorCriticObjective(object, metaclass=ABCMeta):
         pass
 
     def minimize_separate(self, policy_optimizer, baseline_optimizer, policy_kwargs, baseline_kwargs):
-        """Creates an operation that minimizes both the policy loss and the baseline loss separately. This means that
-        it minimizes the losses using two different optimizers.
+        """Creates an operation that minimizes the policy loss and the baseline loss separately. This means that it
+        minimizes the losses using two different optimizers.
 
         Args:
             policy_optimizer: A `tf.train.Optimizer` that is used for the policy loss.
@@ -55,7 +55,7 @@ class ActorCriticObjective(object, metaclass=ABCMeta):
         where baseline_loss_weight determines the 'learning rate' relative to the policy loss.
 
         Args:
-            optimizer: A `tf.train.Optimizer` that is used for both the policy loss and baseline loss.
+            optimizer: A `tf.train.Optimizer` that is used for both the policy loss and the baseline loss.
             baseline_loss_weight: A scalar that determines the relative 'learning rate'.
             kwargs: Optional keyword arguments passed to the `minimize()` method of the optimizer.
 
@@ -67,16 +67,15 @@ class ActorCriticObjective(object, metaclass=ABCMeta):
 
 
 class A2CObjective(ActorCriticObjective):
-    """Defines the loss of the policy and the baseline of an `actorcritic.model.ActorCriticModel` according to the A3C
-    and ACKTR paper:
+    """An objective that defines the loss of the policy and the baseline according to the A3C and A2C/ACKTR papers:
 
         https://arxiv.org/pdf/1602.01783.pdf  (A3C)
-        https://arxiv.org/pdf/1708.05144.pdf  (ACKTR)
+        https://arxiv.org/pdf/1708.05144.pdf  (A2C/ACKTR)
 
     The rewards are discounted and the policy loss uses entropy regularization. The baseline is optimized using a
     squared error loss.
 
-    The policy objective using entropy regularization becomes,
+    The policy objective uses entropy regularization,
 
         J(theta) = log(policy(state, action | theta)) * (target_values - baseline) + beta * entropy(policy)
 
@@ -87,11 +86,12 @@ class A2CObjective(ActorCriticObjective):
         """Creates a new `A2CObjective`.
 
         Args:
-            model: A `actorcritic.model.ActorCriticModel` that provides the policy and the baseline to optimize.
-            discount_factor: A discount factor to discount the rewards. Should be a scalar between [0, 1].
+            model: An `actorcritic.model.ActorCriticModel` that provides the policy and the baseline that will be
+                optimized.
+            discount_factor: A discount factor used for discounting the rewards. Should be a scalar between [0, 1].
             entropy_regularization_strength: A scalar determining the strength of the entropy regularization.
                 Corresponds to the 'beta' parameter in A3C.
-            name: An optional name for this objective.
+            name: An optional name of this objective.
         """
         bootstrap_values = model.bootstrap_values
         actions = model.actions_placeholder
@@ -134,7 +134,7 @@ class A2CObjective(ActorCriticObjective):
                 self._policy_loss = -policy_objective
 
             with tf.name_scope('baseline_loss'):
-                # squared error loss for baseline
+                # squared error loss for baseline (actually half squared error loss)
                 # TODO value_function_loss = -tf.reduce_mean(advantage_function * value_function_gradient) ?
                 self._baseline_loss = tf.reduce_mean(tf.square(target_values - baseline.value) / 2.)
 

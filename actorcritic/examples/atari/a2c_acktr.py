@@ -15,17 +15,18 @@ from actorcritic.objectives import A2CObjective
 
 
 def train_a2c_acktr(acktr, env_id, num_envs, num_steps, save_path, model_name):
-    """Trains an Atari model using A2C or ACKTR. Automatically saves and loads the training progress.
+    """Trains an Atari model using A2C or ACKTR. Automatically saves and loads the trained model.
 
     Args:
-         acktr: A boolean whether the ACKTR (True) or the A2C (False) algorithm should be used. ACKTR uses the K-FAC
-            optimizer and uses 32 filters in the third convolutional layer of the neural network instead of 64.
+         acktr: A boolean that determines whether the ACKTR (True) or the A2C (False) algorithm should be used. ACKTR
+            uses the K-FAC optimizer and uses 32 filters in the third convolutional layer of the neural network instead
+            of 64.
         env_id: A string id passed to `gym.make()` to create the environments.
-        num_envs: The number of environments that will be used (implies the number of subprocesses). The default value
-            for A2C is 16, for ACKTR it is 32.
-        num_steps: The number of steps to take in each iteration. The default value for A2C is 5, for ACKTR it is 20.
-        save_path: A directory where the model is loaded from and saved.
-        model_name: A name of the model. The files in the `save_path` directory will use this name.
+        num_envs: The number of environments that will be used (so `num_envs` subprocesses will be created).
+            A2C normally uses 16. ACKTR normally uses 32.
+        num_steps: The number of steps to take in each iteration. A2C normally uses 5. ACKTR normally uses 20.
+        save_path: A directory to load and save the model.
+        model_name: A name of the model. The files in the `save_path` directory will have this name.
     """
 
     # creates functions to create environments (binds values to make_atari_env)
@@ -118,14 +119,14 @@ def make_atari_env(env_id, render):
 
     Args:
         env_id: A string id passed to `gym.make()`.
-        render: Whether this environment should be rendered.
+        render: A boolean that determines whether this environment should be rendered.
 
     Returns:
-        A new `gym.Env`.
+        A `gym.Env`.
     """
     env = gym.make(env_id)
 
-    # execute the 'NOOP' action a random number of times between 0 and 30 after a reset
+    # execute the 'NOOP' action a random number of times between 1 and 30 after a reset
     env = wrappers.AtariNoopResetWrapper(env, noop_max=30)
 
     # use only 4th frame while repeating the action on the remaining 3 frames

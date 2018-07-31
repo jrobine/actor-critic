@@ -14,10 +14,10 @@ class AtariModel(ActorCriticModel):
         https://www.nature.com/articles/nature14236
 
     The observations are sent to three convolutional layers followed by a fully connected layer, each using rectifier
-    activation functions (ReLU). The policy and the baseline are fully connected layers built on top of the last hidden
+    activation functions (ReLU). The policy and the baseline use fully connected layers built on top of the last hidden
     fully connected layer separately. The policy layer has one unit for each action and its outputs are used as logits
-    for a categorical distribution. The baseline layer has only one unit which represents its value. The weights of the
-    layers are orthogonally initialized.
+    for a categorical distribution (SoftmaxPolicy). The baseline layer has only one unit which represents its value.
+    The weights of the layers are orthogonally initialized.
 
     Detailed network structure:
     - Conv2D: 32 filters 8x8, stride 4
@@ -38,10 +38,10 @@ class AtariModel(ActorCriticModel):
     def __init__(self, observation_space, action_space, conv3_num_filters=64, random_seed=None, name=None):
         """Creates a new `AtariModel`.
 
-        observation_space: A `gym.spaces.Box` of the observations that will be passed to the `observations_placeholder`
-            and the `bootstrap_observations_placeholder`. Used to create these placeholders.
-        action_space: A `gym.spaces.Discrete` of the actions that will be passed to the `actions_placeholder`. Used to
-            create this placeholder.
+        observation_space: A `gym.spaces.Box` determining the shape of the observations that will be passed to the
+            `observations_placeholder` and the `bootstrap_observations_placeholder`. Used to create these placeholders.
+        action_space: A `gym.spaces.Discrete` determining the shape of the actions that will be passed to the
+            `actions_placeholder`. Used to create this placeholder.
         conv3_num_filters: An optional number of filters used for the third convolutional layer. ACKTR uses 32 instead
             of 64.
         random_seed: An optional random seed used for the `actorcritic.policies.SoftmaxPolicy`.
@@ -203,7 +203,7 @@ class AtariModel(ActorCriticModel):
         return preactivations, activations
 
     def register_layers(self, layer_collection):
-        """Registers the layers of this model (neural net) in the specified LayerCollection (required for K-FAC).
+        """Registers the layers of this model (neural net) in the specified `kfac.LayerCollection` (required for K-FAC).
 
         Args:
             layer_collection: A `kfac.LayerCollection`.

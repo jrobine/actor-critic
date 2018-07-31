@@ -4,7 +4,7 @@ import tensorflow as tf
 
 
 class Policy(object, metaclass=ABCMeta):
-    """Abstract class for stochastic policies.
+    """Base class for stochastic policies.
     """
 
     @property
@@ -53,10 +53,11 @@ class Policy(object, metaclass=ABCMeta):
         pass
 
     def register_predictive_distribution(self, layer_collection, random_seed=None):
-        """Registers the predictive distribution of this policy in the specified LayerCollection (required for K-FAC).
+        """Registers the predictive distribution of this policy in the specified `kfac.LayerCollection`
+        (required for K-FAC).
 
         Policies that do not support K-FAC do not have to override this method.
-        In this case raises a NotImplementedError.
+        In this case a `NotImplementedError` is raised.
 
         Args:
             layer_collection: A `kfac.LayerCollection`.
@@ -66,12 +67,12 @@ class Policy(object, metaclass=ABCMeta):
 
 
 class DistributionPolicy(Policy, metaclass=ABCMeta):
-    """Abstract class for stochastic policies that follow a specific `tf.distributions.Distribution`.
-    Implements the required methods based on this distribution.
+    """Base class for stochastic policies that follow a concrete `tf.distributions.Distribution`. Implements the
+    required methods based on this distribution.
     """
 
     def __init__(self, distribution, random_seed=None):
-        """Creates a policy following the specified distribution.
+        """Creates a new `DistributionPolicy`.
 
         Args:
              distribution: A subclass of `tf.distributions.Distribution`.
@@ -126,25 +127,25 @@ class DistributionPolicy(Policy, metaclass=ABCMeta):
 
 
 class SoftmaxPolicy(DistributionPolicy):
+    """A stochastic policy that follows a categorical distribution.
+    """
 
     def __init__(self, logits, random_seed=None, name=None):
-        """Creates a new policy following a categorical distribution.
+        """Creates a new `SoftmaxPolicy`.
 
         Args:
              logits: A `tf.Tensor` that contains the input logits (or 'scores') used to compute the probabilities.
         """
-
         with tf.variable_scope(name, 'SoftmaxPolicy'):
             super().__init__(tf.distributions.Categorical(logits, name='distribution'), random_seed)
 
     def register_predictive_distribution(self, layer_collection, random_seed=None):
         """Registers the predictive distribution (categorical distribution) of this policy in the specified
-        LayerCollection (required for K-FAC).
+        `kfac.LayerCollection` (required for K-FAC).
 
         Args:
             layer_collection: A `kfac.LayerCollection`.
             random_seed: An optional random seed for sampling from the predictive distribution.
         """
-
         return layer_collection.register_categorical_predictive_distribution(
             logits=self._distribution.logits, seed=random_seed)

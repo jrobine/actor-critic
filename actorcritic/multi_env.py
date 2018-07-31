@@ -6,13 +6,14 @@ import gym
 
 
 class MultiEnv(object):
-    """An environment that maintains multiple `SubprocessEnv`s and executes them in parallel. The environments will be
-    reset automatically when a terminal state is reached. That means that `reset()` actually only has to be called once
-    at the beginning.
+    """An environment that maintains multiple `SubprocessEnv`s and executes them in parallel.
+
+    The environments will be reset automatically when a terminal state is reached. That means that `reset()` actually
+    only has to be called once in the beginning.
     """
 
     def __init__(self, envs):
-        """Create a new `MultiEnv` using multiple environments.
+        """Create a new `MultiEnv`.
 
         Args:
             envs: A list of `SubprocessEnv`s. The observation and action spaces must be equal across the environments.
@@ -23,7 +24,7 @@ class MultiEnv(object):
 
     @property
     def envs(self):
-        """The maintained environments.
+        """The environments.
 
         Returns:
             A list of `gym.Env`s.
@@ -32,7 +33,7 @@ class MultiEnv(object):
 
     @property
     def observation_space(self):
-        """The observation space of every environment.
+        """The observation space used by all environments.
 
         Returns:
             A `gym.spaces.Space`.
@@ -41,7 +42,7 @@ class MultiEnv(object):
 
     @property
     def action_space(self):
-        """The action space of every environment.
+        """The action space used by all environments.
 
         Returns:
             A `gym.spaces.Space`
@@ -90,7 +91,7 @@ class MultiEnv(object):
 
 def create_subprocess_envs(env_fns):
     """Utility function that creates environments by calling the functions in `env_fns` and wrapping the returned
-    environments in `SubprocessEnv`s. These `SubprocessEnv`s already get started and they get initialized in parallel.
+    environments in `SubprocessEnv`s. These `SubprocessEnv`s will be started and initialized in parallel.
 
     Args:
         env_fns: A list of callable functions that return a `gym.Env`. They should not be instances of `SubprocessEnv`
@@ -108,7 +109,7 @@ def create_subprocess_envs(env_fns):
         envs.append(env)
 
     # call `initialize()`, which blocks the execution, in parallel using multiple threads
-    # this also ensures that the environments are created afterwards
+    # this also ensures that the creation of the environments is finished when returning from this function
     with concurrent.futures.ThreadPoolExecutor(len(envs)) as executor:
         for env in envs:
             executor.submit(env.initialize)
@@ -140,10 +141,10 @@ class SubprocessEnv(gym.Env):
     will be recreated automatically without interrupting the execution.
 
     To use the subprocess `start()` has to be called first. After that `initialize()` has to be called to retrieve the
-    observation space and action space from the underlying environment. The purpose of these methods is that multiple
-    `SubprocessEnv`s can be created and started in parallel without blocking the execution, which creates the underlying
-    `gym.Env`s already. Afterwards `start()` can be called which blocks the execution. See `create_subprocess_envs()`
-    above, which implements this idea.
+    observation space and the action space from the underlying environment. The purpose of these methods is that
+    multiple `SubprocessEnv`s can be created and started in parallel without blocking the execution, which creates the
+    underlying `gym.Env`s already. Afterwards `start()`, which blocks the execution, can be called in parallel.
+    See `create_subprocess_envs()` above, which implements this idea.
     """
 
     class _Command:
@@ -202,8 +203,8 @@ class SubprocessEnv(gym.Env):
             self._started = True
 
     def initialize(self):
-        """Initializes this `SubprocessEnv`. In fact retrieves the observation space and action space from the
-        environment in the subprocess. This method blocks until execution is finished. The process has to be started.
+        """Retrieves the observation space and the action space from the environment in the subprocess. This method
+        blocks until the execution is finished. `start()` must have been called.
         """
         self._check_closed()
 
@@ -244,8 +245,8 @@ class SubprocessEnv(gym.Env):
 
     @property
     def action_space(self):
-        """The action space of the underlying environment. Does not block the execution. The process has to be started
-        an initialized.
+        """The action space of the underlying environment. Does not block the execution. `start()` and `initialize()`
+        must have been called.
 
         Returns:
             A `gym.spaces.Space`.
@@ -255,8 +256,8 @@ class SubprocessEnv(gym.Env):
 
     @property
     def observation_space(self):
-        """The observation space of the underlying environment. Does not block the execution. The process has to be
-        started an initialized.
+        """The observation space of the underlying environment. Does not block the execution. `start()` and
+        `initialize()` must have been called.
 
         Returns:
             A `gym.spaces.Space`.
@@ -265,8 +266,8 @@ class SubprocessEnv(gym.Env):
         return self._observation_space
 
     def step(self, action):
-        """Remotely calls `step()` in the subprocess. This method blocks until execution is finished. The process has
-        to be started and initialized.
+        """Remotely calls `step()` in the underlying environment. This method blocks until execution is finished.
+        `start()` and `initialize()` must have been called.
 
         Args:
             action: The `action` argument passed to the `step()` call.
@@ -278,8 +279,8 @@ class SubprocessEnv(gym.Env):
         return self._communicate(SubprocessEnv._Command.STEP, action)
 
     def reset(self, **kwargs):
-        """Remotely calls `reset()` in the subprocess. This method blocks until execution is finished. The process has
-        to be started and initialized.
+        """Remotely calls `reset()` in the underlying environment. This method blocks until execution is finished.
+        `start()` and `initialize()` must have been called.
 
         Args:
             kwargs: Keyword arguments passed to the `reset()` call.
@@ -291,8 +292,8 @@ class SubprocessEnv(gym.Env):
         return self._communicate(SubprocessEnv._Command.RESET, kwargs)
 
     def render(self, mode='human'):
-        """Remotely calls `render()` in the subprocess. This methods blocks until execution is finished. The process has
-        to be started and initialized.
+        """Remotely calls `render()` in the subprocess. This methods blocks until execution is finished. `start()` and
+        `initialize()` must have been called.
 
         Args:
             mode: The `mode` argument passed to the `render()` call.

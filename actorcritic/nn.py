@@ -9,12 +9,12 @@ def fully_connected_params(input_size, output_size, dtype, weights_initializer, 
     Args:
         input_size: The size of the input layer.
         output_size: The output size. Number of units.
-        dtype: The data type of the variables.
-        weights_initializer: Initializer for weights variable.
-        bias_initializer: Initializer for bias variable.
+        dtype: The `tf.DType` of the variables.
+        weights_initializer: A `tf.keras.initializers.Initializer` used for weights.
+        bias_initializer: A `tf.keras.initializers.Initializer` used for bias.
 
     Returns:
-        A tuple of (weights, bias), where `weights` and `bias` are `tf.Variable`s.
+        A tuple of (weights, bias). `weights` and `bias` are `tf.Variable`s.
     """
     weights = tf.get_variable('weights', (input_size, output_size), dtype, weights_initializer)
     bias = tf.get_variable('bias', (output_size,), dtype, bias_initializer)
@@ -27,28 +27,28 @@ def fully_connected(input, params):
 
     Args:
         input: A `tf.Tensor` that contains the input values.
-        params: Tuple of (weights, bias), where `weights` and `bias` are `tf.Variable`s.
+        params: A tuple of (weights, bias). `weights` and `bias` are `tf.Variable`s.
 
     Returns:
-        A `tf.Tensor` that contains the output of the operation.
+        A `tf.Tensor` that contains the output.
     """
     weights, bias = params
     return input @ weights + bias
 
 
 def conv2d_params(num_input_channels, num_filters, filter_extent, dtype, weights_initializer, bias_initializer):
-    """Created weights and bias variables for a 2D convolutional layer. These can be used in `conv2d()` afterwards.
+    """Creates weights and bias variables for a 2D convolutional layer. These can be used in `conv2d()` afterwards.
 
     Args:
         num_input_channels: The size of the input layer.
         num_filters: The output size. Number of filters to apply.
         filter_extent: The spatial extent of the filters. Determines the size of the weights.
-        dtype: The data type of the variables.
-        weights_initializer: Initializer for weights variable.
-        bias_initializer: Initializer for bias variable.
+        dtype: The `tf.DType` of the variables.
+        weights_initializer: A `tf.keras.initializers.Initializer` used for weights.
+        bias_initializer: A `tf.keras.initializers.Initializer` used for bias.
 
     Returns:
-        A tuple of (weights, bias), where `weights` and `bias` are `tf.Variable`s.
+        A tuple of (weights, bias). `weights` and `bias` are `tf.Variable`s.
     """
     weights = tf.get_variable(
         'weights', (filter_extent, filter_extent, num_input_channels, num_filters), dtype, weights_initializer)
@@ -62,12 +62,12 @@ def conv2d(input, params, stride, padding):
 
     Args:
         input: A `tf.Tensor` that contains the input values.
-        params: Tuple of (weights, bias), where `weights` and `bias` are `tf.Variable`s.
+        params: A tuple of (weights, bias). `weights` and `bias` are `tf.Variable`s.
         stride: The stride.
         padding: The padding. One of 'VALID', 'SAME'.
 
     Returns:
-        A `tf.Tensor` that contains the output of the operation.
+        A `tf.Tensor` that contains the output.
     """
     strides = (1, stride, stride, 1)
     weights, bias = params
@@ -89,7 +89,7 @@ def flatten(input):
 
 
 def linear_decay(start_value, end_value, step, total_steps, name=None):
-    """Applies linear decay from start_value to end_value.
+    """Applies linear decay from `start_value` to `end_value`.
 
     ```python
     value = (start_value - end_value) * (1 - step / total_steps) + end_value
@@ -111,7 +111,8 @@ def linear_decay(start_value, end_value, step, total_steps, name=None):
 
 
 class ClipGlobalNormOptimizer(tf.train.Optimizer):
-    """An optimizer that minimizes the loss by clipping gradients using global norm (tf.clip_by_global_norm).
+    """A `tf.train.Optimizer` that wraps around another optimizer and minimizes the loss by clipping gradients using the
+    global norm (tf.clip_by_global_norm).
 
         see also:
         * https://www.tensorflow.org/versions/r1.2/api_docs/python/tf/clip_by_global_norm
@@ -122,8 +123,8 @@ class ClipGlobalNormOptimizer(tf.train.Optimizer):
         """Creates a new `ClipGlobalNormOptimizer`.
 
         Args:
-            optimizer: The original `tf.train.Optimizer` to clip gradients on.
-            clip_norm: A `tf.Tensor` or scalar that is used as value for global norm (tf.clip_by_global_norm).
+            optimizer: A `tf.train.Optimizer` whose gradients will be clipped.
+            clip_norm: A `tf.Tensor` or scalar that is used as value for the global norm (tf.clip_by_global_norm).
             name: An optional name for this optimizer.
         """
         super().__init__(use_locking=False, name='ClipGlobalNormOptimizer' if name is None else name)
