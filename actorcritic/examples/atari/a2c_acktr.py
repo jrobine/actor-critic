@@ -18,14 +18,14 @@ def train_a2c_acktr(acktr, env_id, num_envs, num_steps, save_path, model_name):
     """Trains an Atari model using A2C or ACKTR. Automatically saves and loads the training progress.
 
     Args:
-         acktr: Boolean whether the ACKTR (True) or the A2C (False) algorithm should be used. ACKTR uses the K-FAC
+         acktr: A boolean whether the ACKTR (True) or the A2C (False) algorithm should be used. ACKTR uses the K-FAC
             optimizer and uses 32 filters in the third convolutional layer of the neural network instead of 64.
-        env_id: The string id passed to `gym.make()` to create the environments.
+        env_id: A string id passed to `gym.make()` to create the environments.
         num_envs: The number of environments that will be used (implies the number of subprocesses). The default value
             for A2C is 16, for ACKTR it is 32.
         num_steps: The number of steps to take in each iteration. The default value for A2C is 5, for ACKTR it is 20.
-        save_path: The directory where the model is loaded from and saved.
-        model_name: The name of the model. The files in the `save_path` directory will use this name.
+        save_path: A directory where the model is loaded from and saved.
+        model_name: A name of the model. The files in the `save_path` directory will use this name.
     """
 
     # creates functions to create environments (binds values to make_atari_env)
@@ -117,13 +117,12 @@ def make_atari_env(env_id, render):
     """Creates a new `gym.Env` with the specified id and wraps it with all supported Atari wrappers.
 
     Args:
-        env_id: The string id passed to `gym.make()`.
+        env_id: A string id passed to `gym.make()`.
         render: Whether this environment should be rendered.
 
     Returns:
         A new `gym.Env`.
     """
-
     env = gym.make(env_id)
 
     # execute the 'NOOP' action a random number of times between 0 and 30 after a reset

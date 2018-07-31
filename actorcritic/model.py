@@ -22,7 +22,6 @@ class ActorCriticModel(object, metaclass=ABCMeta):
             action_space: The `gym.spaces.Space` of the actions that will be passed to the `actions_placeholder`. Used
                 to create this placeholder.
         """
-
         self._observations_placeholder = None
         self._bootstrap_observations_placeholder = None
         self._actions_placeholder = None
@@ -40,7 +39,7 @@ class ActorCriticModel(object, metaclass=ABCMeta):
         """Provides the placeholder for the sampled observations.
 
         Returns:
-            A placeholder.
+            A `tf.Tensor` that is a placeholder.
         """
         return self._observations_placeholder
 
@@ -50,7 +49,7 @@ class ActorCriticModel(object, metaclass=ABCMeta):
         bootstrapping.
 
         Returns:
-            A placeholder.
+            A `tf.Tensor` that is a placeholder.
         """
         return self._bootstrap_observations_placeholder
 
@@ -59,7 +58,7 @@ class ActorCriticModel(object, metaclass=ABCMeta):
         """Provides the placeholder for the sampled actions.
 
         Returns:
-            A placeholder.
+            A `tf.Tensor` that is a placeholder.
         """
         return self._actions_placeholder
 
@@ -68,7 +67,7 @@ class ActorCriticModel(object, metaclass=ABCMeta):
         """Provides the placeholder for the sampled rewards (scalars).
 
         Returns:
-            A placeholder.
+            A `tf.Tensor` that is a placeholder.
         """
         return self._rewards_placeholder
 
@@ -77,7 +76,7 @@ class ActorCriticModel(object, metaclass=ABCMeta):
         """Provides the placeholder for the sampled terminals (booleans).
 
         Returns:
-            A placeholder.
+            A `tf.Tensor` that is a placeholder.
         """
         return self._terminals_placeholder
 
@@ -104,7 +103,7 @@ class ActorCriticModel(object, metaclass=ABCMeta):
         """The bootstrapped values computed based on the observations passed to `bootstrap_observations_placeholder`.
 
         Returns:
-            A tensor that computes the bootstrapped values.
+            A `tf.Tensor` that computes the bootstrapped values.
         """
         return self._bootstrap_values
 
@@ -137,7 +136,6 @@ class ActorCriticModel(object, metaclass=ABCMeta):
             layer_collection: A `kfac.LayerCollection`.
             random_seed: An optional random seed for sampling from the predictive distributions.
         """
-
         self._policy.register_predictive_distribution(layer_collection, random_seed)
         self._baseline.register_predictive_distribution(layer_collection, random_seed)
 
@@ -146,7 +144,7 @@ class ActorCriticModel(object, metaclass=ABCMeta):
 
         Args:
             observations: The observations passed to `observations_placeholder`.
-            session: The session used to compute the values.
+            session: A `tf.Session` used to compute the values.
 
         Returns:
             A list containing the actions. The shape equals the shape of the observations.
@@ -160,7 +158,7 @@ class ActorCriticModel(object, metaclass=ABCMeta):
 
         Args:
             observations: The observations passed to `observations_placeholder`.
-            session: The session used to compute the values.
+            session: A `tf.Session` used to compute the values.
 
         Returns:
             A list containing the actions. The shape equals the shape of the observations.

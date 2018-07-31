@@ -12,7 +12,7 @@ class Agent(object, metaclass=ABCMeta):
         """Samples actions from the model and steps in the environments.
 
         Args:
-             session: the session to compute actions using the model.
+             session: A `tf.Session` to compute actions using the model.
 
         Returns:
             A tuple (observations, actions, rewards, terminals, next_observations, infos).
@@ -45,9 +45,9 @@ class SingleEnvAgent(Agent):
         """Creates a new `SingleEnvAgent`.
 
         Args:
-             env: The `gym.Env`.
-             model: The `actorcritic.model.ActorCriticModel` to sample actions from.
-             num_steps: The number of steps to take in each call to `interact()`.
+             env: A `gym.Env`.
+             model: A `actorcritic.model.ActorCriticModel` to sample actions from.
+             num_steps: The number of steps to take in each call of `interact()`.
         """
         self._env = env
         self._model = model
@@ -59,7 +59,7 @@ class SingleEnvAgent(Agent):
         """Samples actions from the model and steps in the environment.
 
         Args:
-             session: the session to compute actions using the model.
+             session: A `tf.Session` to compute actions using the model.
 
         Returns:
             A tuple (observations, actions, rewards, terminals, next_observations, infos).
@@ -121,8 +121,8 @@ class MultiEnvAgent(Agent):
         """Creates a new `MultiEnvAgent`.
 
         Args:
-             multi_env: The `actorcritic.multi_env.MultiEnv` that maintains multiple environments.
-             model: The `actorcritic.model.ActorCriticModel` to sample actions from.
+             multi_env: A `actorcritic.multi_env.MultiEnv` that maintains multiple environments.
+             model: A `actorcritic.model.ActorCriticModel` to sample actions from.
              num_steps: The number of steps to take in each call to `interact()`.
         """
         self._env = multi_env
@@ -135,7 +135,7 @@ class MultiEnvAgent(Agent):
         """Samples actions from the model and steps in the environment.
 
         Args:
-             session: the session to compute actions using the model.
+             session: A `tf.Session` to compute actions using the model.
 
         Returns:
             A tuple (observations, actions, rewards, terminals, next_observations, infos).
@@ -207,7 +207,7 @@ def transpose_list(values):
     becomes  [ [1, 5, 9], [2, 6, 10], [3, 7, 11], [4, 8, 12] ]
 
     Args:
-        values: The list of lists.
+        values: A list of lists.
 
     Returns:
         A list containing the transposed lists.

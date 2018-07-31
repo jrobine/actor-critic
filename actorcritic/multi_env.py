@@ -14,7 +14,8 @@ class MultiEnv(object):
     def __init__(self, envs):
         """Create a new `MultiEnv` using multiple environments.
 
-        envs: A list of `SubprocessEnv`s. The observation and action spaces must be equal across the environments.
+        Args:
+            envs: A list of `SubprocessEnv`s. The observation and action spaces must be equal across the environments.
         """
         super().__init__()
         self._envs = [_AutoResetWrapper(env) for env in envs]
@@ -22,7 +23,7 @@ class MultiEnv(object):
 
     @property
     def envs(self):
-        """The environments maintained by this `MultiEnv`.
+        """The maintained environments.
 
         Returns:
             A list of `gym.Env`s.
@@ -191,7 +192,7 @@ class SubprocessEnv(gym.Env):
         self._process.daemon = True
 
     def start(self):
-        """Starts the subprocess. Does not block. Call `initialize()` afterwards.
+        """Starts the subprocess. Does not block. You should call `initialize()` afterwards.
         """
         self._check_closed()
 
@@ -281,7 +282,7 @@ class SubprocessEnv(gym.Env):
         to be started and initialized.
 
         Args:
-            kwargs: keyword arguments passed to the `reset()` call.
+            kwargs: Keyword arguments passed to the `reset()` call.
 
         Returns:
             The value returned by the `reset()` call.

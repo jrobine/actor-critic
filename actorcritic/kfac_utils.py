@@ -19,7 +19,7 @@ class ColdStartPeriodicInvUpdateKfacOpt(kfac.KfacOptimizer):
 
         Args:
             num_cold_updates: The number of 'cold updates' in the beginning before using the actual K-FAC optimizer.
-            cold_optimizer: The optimizer to use for the 'cold updates'.
+            cold_optimizer: The `tf.train.Optimizer` to use for the 'cold updates'.
             invert_every: The inverse operation get called every `invert_every` steps (after the 'cold updates' have
                 finished).
         """

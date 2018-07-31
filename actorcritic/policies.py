@@ -13,7 +13,7 @@ class Policy(object, metaclass=ABCMeta):
         """Samples actions from this policy based on the inputs that are provided for computing the probabilities.
 
         Returns:
-            A tensor that samples the actions. The shape equals the shape of the inputs.
+            A `tf.Tensor` that samples the actions. The shape equals the shape of the inputs.
         """
         pass
 
@@ -24,7 +24,7 @@ class Policy(object, metaclass=ABCMeta):
         provided for computing the probabilities.
 
         Returns:
-            A tensor that selects the actions. The shape equals the shape of the inputs.
+            A `tf.Tensor` that selects the actions. The shape equals the shape of the inputs.
         """
         pass
 
@@ -34,7 +34,7 @@ class Policy(object, metaclass=ABCMeta):
         """Computes the entropy of this policy based on the inputs that are provided for computing the probabilities.
 
         Returns:
-            A tensor computing the entropy values. The shape equals the shape of the inputs.
+            A `tf.Tensor` that computes the entropy values. The shape equals the shape of the inputs.
         """
         pass
 
@@ -44,11 +44,11 @@ class Policy(object, metaclass=ABCMeta):
         probabilities.
 
         Args:
-            actions: The actions. Must be of the same shape as the provided inputs.
-            name: Optional name of the operation.
+            actions: A `tf.Tensor` that contains the actions. Must be of the same shape as the provided inputs.
+            name: An optional name of the operation.
 
         Returns:
-            A tensor containing the log-probabilities. The shape equals the shape of the actions and the inputs.
+            A `tf.Tensor` containing the log-probabilities. The shape equals the shape of the actions and the inputs.
         """
         pass
 
@@ -62,7 +62,6 @@ class Policy(object, metaclass=ABCMeta):
             layer_collection: A `kfac.LayerCollection`.
             random_seed: An optional random seed for sampling from the predictive distribution.
         """
-
         raise NotImplementedError()
 
 
@@ -75,10 +74,9 @@ class DistributionPolicy(Policy, metaclass=ABCMeta):
         """Creates a policy following the specified distribution.
 
         Args:
-             distribution: The distribution, subclass of `tf.distributions.Distribution`.
+             distribution: A subclass of `tf.distributions.Distribution`.
              random_seed: An optional random seed used for sampling.
         """
-
         self._distribution = distribution
 
         self._sample = tf.squeeze(distribution.sample(sample_shape=[], seed=random_seed, name='sample'), axis=-1)
@@ -90,7 +88,7 @@ class DistributionPolicy(Policy, metaclass=ABCMeta):
         """Samples actions from this policy based on the inputs that are provided for computing the probabilities.
 
         Returns:
-            A tensor that samples the actions. The shape equals the shape of the inputs.
+            A `tf.Tensor` that samples the actions. The shape equals the shape of the inputs.
         """
         return self._sample
 
@@ -100,7 +98,7 @@ class DistributionPolicy(Policy, metaclass=ABCMeta):
         provided for computing the probabilities.
 
         Returns:
-            A tensor that selects the actions. The shape equals the shape of the inputs.
+            A `tf.Tensor` that selects the actions. The shape equals the shape of the inputs.
         """
         return self._mode
 
@@ -109,7 +107,7 @@ class DistributionPolicy(Policy, metaclass=ABCMeta):
         """Computes the entropy of this policy based on the inputs that are provided for computing the probabilities.
 
         Returns:
-            A tensor computing the entropy values. The shape equals the shape of the inputs.
+            A `tf.Tensor` that computes the entropy values. The shape equals the shape of the inputs.
         """
         return self._entropy
 
@@ -118,11 +116,11 @@ class DistributionPolicy(Policy, metaclass=ABCMeta):
         probabilities.
 
         Args:
-            actions: The actions. Must be of the same shape as the provided inputs.
-            name: Optional name of the operation.
+            actions: A `tf.Tensor` that contains the actions. Must be of the same shape as the provided inputs.
+            name: An optional name of the operation.
 
         Returns:
-            A tensor containing the log-probabilities. The shape equals the shape of the actions and the inputs.
+            A `tf.Tensor` containing the log-probabilities. The shape equals the shape of the actions and the inputs.
         """
         return self._distribution.log_prob(tf.cast(actions, tf.int32), name=name)
 
@@ -133,7 +131,7 @@ class SoftmaxPolicy(DistributionPolicy):
         """Creates a new policy following a categorical distribution.
 
         Args:
-             logits: The input logits (or 'scores') used to compute the probabilities.
+             logits: A `tf.Tensor` that contains the input logits (or 'scores') used to compute the probabilities.
         """
 
         with tf.variable_scope(name, 'SoftmaxPolicy'):

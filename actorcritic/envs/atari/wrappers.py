@@ -22,7 +22,7 @@ class AtariPreprocessFrameWrapper(gym.ObservationWrapper):
         """Creates a new `AtariPreprocessFrameWrapper`.
 
         Args:
-            env: The environment that is wrapped.
+            env: A `gym.Env` that is wrapped.
         """
         super().__init__(env)
         self.observation_space = gym.spaces.Box(low=0, high=255, shape=(84, 84, 1), dtype=np.uint8)
@@ -41,7 +41,7 @@ class AtariFrameskipWrapper(gym.Wrapper):
         """Creates a new `AtariFrameskipWrapper`.
 
         Args:
-            env: The environment that is wrapped.
+            env: A `gym.Env` that is wrapped.
             frameskip: Every `frameskip`-th is used, the remaining frames are skipped.
         """
         super().__init__(env)
@@ -76,7 +76,7 @@ class AtariClipRewardWrapper(gym.RewardWrapper):
         """Creates a new `AtariClipRewardWrapper`.
 
         Args:
-            env: The environment that is wrapped.
+            env: A `gym.Env` that is wrapped.
         """
         super().__init__(env)
 
@@ -92,7 +92,7 @@ class AtariEpisodicLifeWrapper(gym.Wrapper):
         """Creates a new `AtariEpisodicLifeWrapper`.
 
         Args:
-            env: The environment that is wrapped.
+            env: A `gym.Env` that is wrapped.
         """
         super().__init__(env)
         self.lives = 0
@@ -123,7 +123,7 @@ class AtariFireResetWrapper(gym.Wrapper):
         """Creates a new `AtariFireResetWrapper`.
 
         Args:
-            env: The environment that is wrapped.
+            env: A `gym.Env` that is wrapped.
         """
         super().__init__(env)
 
@@ -148,7 +148,7 @@ class AtariNoopResetWrapper(gym.Wrapper):
         """Creates a new `AtariNoopResetWrapper`.
 
         Args:
-            env: The environment that is wrapped.
+            env: A `gym.Env` that is wrapped.
             noop_max: The maximum number of 'NOOP' actions. The number is selected randomly between 0 and `noop_max`.
         """
         super().__init__(env)
@@ -175,7 +175,7 @@ class RenderWrapper(gym.Wrapper):
         """Creates a new `AtariNoopResetWrapper`.
 
         Args:
-            env: The environment that is wrapped.
+            env: A `gym.Env` that is wrapped.
             fps: An optional scalar. If it is not None, the steps will be slowed down to run at the specified frames
                 per second by waiting 1.0/`fps` seconds after each `step()`.
         """
@@ -201,7 +201,7 @@ class FrameStackWrapper(gym.Wrapper):
         """Creates a new `FrameStackWrapper`.
 
         Args:
-            env: The environment that is wrapped.
+            env: A `gym.Env` that is wrapped.
             fps: The number of frames that will be stacked.
         """
         super().__init__(env)
@@ -236,7 +236,7 @@ class AtariInfoClearWrapper(gym.Wrapper):
         """Creates a new `AtariInfoClearWrapper`.
 
         Args:
-            env: The environment that is wrapped.
+            env: A `gym.Env` that is wrapped.
         """
         super().__init__(env)
 
@@ -261,7 +261,7 @@ class EpisodeInfoWrapper(gym.Wrapper):
         """Creates a new `EpisodeInfoWrapper`.
 
         Args:
-            env: The environment that is wrapped.
+            env: A `gym.Env` that is wrapped.
         """
         super().__init__(env)
         self.total_reward = 0.0

@@ -34,8 +34,8 @@ class ActorCriticObjective(object, metaclass=ABCMeta):
         it minimizes the losses using two different optimizers.
 
         Args:
-            policy_optimizer: The `tf.train.Optimizer` that is used for the policy loss.
-            baseline_optimizer: The `tf.train.Optimizer` that is used for the baseline loss.
+            policy_optimizer: A `tf.train.Optimizer` that is used for the policy loss.
+            baseline_optimizer: A `tf.train.Optimizer` that is used for the baseline loss.
             policy_kwargs: Optional keyword arguments passed to the `minimize()` method of the `policy_optimizer`.
             baseline_kwargs: Optional keyword arguments passed to the `minimize()` method of the `baseline_optimizer`.
 
@@ -55,8 +55,8 @@ class ActorCriticObjective(object, metaclass=ABCMeta):
         where baseline_loss_weight determines the 'learning rate' relative to the policy loss.
 
         Args:
-            optimizer: The `tf.train.Optimizer` that is used for both the policy loss and baseline loss.
-            baseline_loss_weight: Scalar determining the relative 'learning rate'.
+            optimizer: A `tf.train.Optimizer` that is used for both the policy loss and baseline loss.
+            baseline_loss_weight: A scalar that determines the relative 'learning rate'.
             kwargs: Optional keyword arguments passed to the `minimize()` method of the optimizer.
 
         Returns:
@@ -87,13 +87,12 @@ class A2CObjective(ActorCriticObjective):
         """Creates a new `A2CObjective`.
 
         Args:
-            model: The `actorcritic.model.ActorCriticModel` that provides the policy and the baseline to optimize.
-            discount_factor: The discount factor to discount the rewards. Should be a scalar between [0, 1].
-            entropy_regularization_strength: The scalar determining the strength of the entropy regularization.
-               Corresponds to the 'beta' parameter in A3C.
+            model: A `actorcritic.model.ActorCriticModel` that provides the policy and the baseline to optimize.
+            discount_factor: A discount factor to discount the rewards. Should be a scalar between [0, 1].
+            entropy_regularization_strength: A scalar determining the strength of the entropy regularization.
+                Corresponds to the 'beta' parameter in A3C.
             name: An optional name for this objective.
         """
-
         bootstrap_values = model.bootstrap_values
         actions = model.actions_placeholder
         rewards = model.rewards_placeholder

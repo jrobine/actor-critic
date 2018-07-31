@@ -38,9 +38,9 @@ class AtariModel(ActorCriticModel):
     def __init__(self, observation_space, action_space, conv3_num_filters=64, random_seed=None, name=None):
         """Creates a new `AtariModel`.
 
-        observation_space: The `gym.spaces.Box` of the observations that will be passed to the
-            `observations_placeholder` and the `bootstrap_observations_placeholder`. Used to create these placeholders.
-        action_space: The `gym.spaces.Discrete` of the actions that will be passed to the `actions_placeholder`. Used to
+        observation_space: A `gym.spaces.Box` of the observations that will be passed to the `observations_placeholder`
+            and the `bootstrap_observations_placeholder`. Used to create these placeholders.
+        action_space: A `gym.spaces.Discrete` of the actions that will be passed to the `actions_placeholder`. Used to
             create this placeholder.
         conv3_num_filters: An optional number of filters used for the third convolutional layer. ACKTR uses 32 instead
             of 64.

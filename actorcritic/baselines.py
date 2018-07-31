@@ -7,9 +7,10 @@ class Baseline(object, metaclass=ABCMeta):
 
     @abstractmethod
     def value(self):
-        """
+        """The output values of this baseline.
+
         Returns:
-            A tensor containing the output values of this baseline.
+            A `tf.Tensor` that contains the values.
         """
         pass
 
@@ -23,7 +24,6 @@ class Baseline(object, metaclass=ABCMeta):
             layer_collection: A `kfac.LayerCollection`.
             random_seed: An optional random seed for sampling from the predictive distribution.
         """
-
         raise NotImplementedError()
 
 
@@ -33,15 +33,16 @@ class StateValueFunction(Baseline):
         """Creates a new state-value function baseline with the specified values.
 
         Args:
-             value: A tensor containing the output values of this state-value function
+             value: A `tf.Tensor` containing the output values of this state-value function.
         """
         self._value = value
 
     @property
     def value(self):
-        """
+        """The output values of this state-value function.
+
         Returns:
-            A tensor containing the output values of this state-value function.
+            A `tf.Tensor` that contains the values.
         """
         return self._value
 
@@ -57,5 +58,4 @@ class StateValueFunction(Baseline):
         # var=0.5 => squared error loss, var=1.0 => half squared error loss
         # var=1.0 => vanilla Gauss Newton, see ACKTR 3.1 "Natural gradient in actor-critic"
         layer_collection.register_normal_predictive_distribution(mean=self._value, var=1.0, seed=random_seed)
-
         # NormalMeanVarianceNegativeLogProbLoss for adaptive gauss newton?
