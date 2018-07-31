@@ -7,8 +7,8 @@ import tensorflow as tf
 
 class ActorCriticModel(object, metaclass=ABCMeta):
     """Contains a model (e.g. a neural net) that provides the functionalities required for actor-critic algorithms.
-    Provides a policy and a baseline (that is subtracted from the target values to compute the advantage) and their
-    placeholders.
+    Provides a policy, a baseline (that is subtracted from the target values to compute the advantage) and the values
+    used for bootstrapping from next observations (ideally the values of the baseline), and the placeholders.
     """
 
     def __init__(self, observation_space, action_space):
@@ -17,8 +17,10 @@ class ActorCriticModel(object, metaclass=ABCMeta):
 
         Args:
             observation_space: The `gym.spaces.Space` of the observations that will be passed to the
-            `observations_placeholder` and the `bootstrap_observations_placeholder`.
-            action_space: The `gym.spaces.Space` of the actions that will be passed to the `actions_placeholder`.
+                `observations_placeholder` and the `bootstrap_observations_placeholder`. Used to create these
+                placeholders.
+            action_space: The `gym.spaces.Space` of the actions that will be passed to the `actions_placeholder`. Used
+                to create this placeholder.
         """
 
         self._observations_placeholder = None

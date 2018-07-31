@@ -9,8 +9,44 @@ from actorcritic.policies import SoftmaxPolicy
 
 
 class AtariModel(ActorCriticModel):
+    """An `actorcritic.model.ActorCriticModel` that follows the A3C and ACKTR paper. The network is originally used in:
+
+        https://www.nature.com/articles/nature14236
+
+    The observations are sent to three convolutional layers followed by a fully connected layer, each using rectifier
+    activation functions (ReLU). The policy and the baseline are fully connected layers built on top of the last hidden
+    fully connected layer separately. The policy layer has one unit for each action and its outputs are used as logits
+    for a categorical distribution. The baseline layer has only one unit which represents its value. The weights of the
+    layers are orthogonally initialized.
+
+    Detailed network structure:
+    - Conv2D: 32 filters 8x8, stride 4
+    - ReLU
+    - Conv2D: 64 filters 4x4, stride 2
+    - ReLU
+    - Conv2D: 64 filters 3x3, stride 1  (number of filters based on argument `conv3_num_filters`)
+    - Flatten
+    - Fully connected: 512 units
+    - ReLU
+    - Fully connected (policy): units = number of actions / Fully connected (baseline): 1 unit
+
+    A2C uses 64 filters in the third convolutional layer. ACKTR uses 32.
+
+    The policy is a `actorcritic.policies.SoftmaxPolicy`. The baseline is a `actorcritic.baselines.StateValueFunction`.
+    """
 
     def __init__(self, observation_space, action_space, conv3_num_filters=64, random_seed=None, name=None):
+        """Creates a new `AtariModel`.
+
+        observation_space: The `gym.spaces.Box` of the observations that will be passed to the
+            `observations_placeholder` and the `bootstrap_observations_placeholder`. Used to create these placeholders.
+        action_space: The `gym.spaces.Discrete` of the actions that will be passed to the `actions_placeholder`. Used to
+            create this placeholder.
+        conv3_num_filters: An optional number of filters used for the third convolutional layer. ACKTR uses 32 instead
+            of 64.
+        random_seed: An optional random seed used for the `actorcritic.policies.SoftmaxPolicy`.
+        name: An optional name of this model.
+        """
         super().__init__(observation_space, action_space)
 
         assert isinstance(action_space, gym.spaces.Discrete)
@@ -21,6 +57,9 @@ class AtariModel(ActorCriticModel):
         self._name = name
 
         # TODO
+
+        # used to convert the outputs of the policy and the baseline back to the batch-major format of the inputs
+        # because the values are flattened in between
         with tf.name_scope('shapes'):
             observations_shape = tf.shape(self._observations_placeholder)
             with tf.name_scope('input_shape'):
@@ -34,11 +73,16 @@ class AtariModel(ActorCriticModel):
 
         num_stack = observation_space.shape[-1]
 
+        # the observations are passed in uint8 to save memory and then converted to scalars in range [0,1] on the gpu
+        # by dividing by 255
         with tf.name_scope('normalized_observations'):
             normalized_observations = tf.cast(self._observations_placeholder, dtype=tf.float32) / 255.0
             normalized_bootstrap_observations = tf.cast(self._bootstrap_observations_placeholder,
                                                         dtype=tf.float32) / 255.0
 
+        # convert from batch-major format [environment, step] to one flat vector [environment * step] by stacking the
+        # steps of each environment
+        # this is necessary since the neural network operations only support batch inputs
         with tf.name_scope('flat_observations'):
             self._flat_observations = tf.stop_gradient(
                 tf.reshape(normalized_observations, (-1,) + observation_space.shape))
@@ -47,9 +91,15 @@ class AtariModel(ActorCriticModel):
 
         with tf.variable_scope(self._name, 'AtariModel'):
             self._params = dict()
+
+            # create parameters for all layers
             self._build_params(num_input_channels=num_stack)
-            self._preactivations, self._activations = self._build_model(self._flat_observations, build_policy=True)
-            _, bootstrap_activations = self._build_model(flat_bootstrap_observations, build_policy=False)
+
+            # create layers for the policy and the baseline that use the standard observations as input
+            self._preactivations, self._activations = self._build_layers(self._flat_observations, build_policy=True)
+
+            # create layers for the bootstrap values that use the next observations as input
+            _, bootstrap_activations = self._build_layers(flat_bootstrap_observations, build_policy=False)
 
             with tf.name_scope('policy'):
                 policy_logits = tf.reshape(self._activations['fc_policy'], [batch_size, num_steps, self._num_actions])
@@ -64,7 +114,7 @@ class AtariModel(ActorCriticModel):
 
     def _build_params(self, num_input_channels):
         with tf.name_scope('initializers'):
-            # taken from original a2c implementation
+            # values of the initializers taken from original a2c implementation
             weights_initializer = tf.orthogonal_initializer(np.sqrt(2.), dtype=tf.float32)
             bias_initializer = tf.zeros_initializer(dtype=tf.float32)
             policy_weights_initializer = tf.orthogonal_initializer(0.01, dtype=tf.float32)
@@ -90,7 +140,7 @@ class AtariModel(ActorCriticModel):
                 conv2_num_filters, self._conv3_num_filters, conv3_filter_extent, tf.float32,
                 weights_initializer, bias_initializer)
 
-        conv3_flat_size = 49 * self._conv3_num_filters
+        conv3_flat_size = 49 * self._conv3_num_filters  # TODO don't hardcode
 
         with tf.variable_scope('fc4'):
             fc4_output_size = 512
@@ -106,7 +156,7 @@ class AtariModel(ActorCriticModel):
                 fc4_output_size, 1, tf.float32, baseline_weights_initializer, bias_initializer)
 
     # noinspection PyShadowingBuiltins
-    def _build_model(self, input, build_policy):
+    def _build_layers(self, input, build_policy):
         preactivations = dict()
         activations = dict()
 
@@ -153,6 +203,11 @@ class AtariModel(ActorCriticModel):
         return preactivations, activations
 
     def register_layers(self, layer_collection):
+        """Registers the layers of this model (neural net) in the specified LayerCollection (required for K-FAC).
+
+        Args:
+            layer_collection: A `kfac.LayerCollection`.
+        """
         layer_collection.register_conv2d(
             self._params['conv1'], strides=[1, 4, 4, 1], padding='VALID',
             inputs=self._flat_observations, outputs=self._preactivations['conv1'])

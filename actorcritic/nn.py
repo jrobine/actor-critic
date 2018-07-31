@@ -113,7 +113,7 @@ def linear_decay(start_value, end_value, step, total_steps, name=None):
 
 
 class ClipGlobalNormOptimizer(tf.train.Optimizer):
-    """Minimizes the loss by clipping gradients using global norm (tf.clip_by_global_norm).
+    """An optimizer that minimizes the loss by clipping gradients using global norm (tf.clip_by_global_norm).
 
         see also:
         * https://www.tensorflow.org/versions/r1.2/api_docs/python/tf/clip_by_global_norm
@@ -121,7 +121,7 @@ class ClipGlobalNormOptimizer(tf.train.Optimizer):
     """
 
     def __init__(self, optimizer, clip_norm, name=None):
-        """Creates a optimizer that clips gradients with global norm.
+        """Creates a new `ClipGlobalNormOptimizer`.
 
         Args:
             optimizer: The original optimizer to clip gradients on.

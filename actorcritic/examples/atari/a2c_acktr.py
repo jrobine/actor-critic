@@ -15,6 +15,19 @@ from actorcritic.objectives import A2CObjective
 
 
 def train_a2c_acktr(acktr, env_id, num_envs, num_steps, save_path, model_name):
+    """Trains an Atari model using A2C or ACKTR. Automatically saves and loads the training progress.
+
+    Args:
+         acktr: Boolean whether the ACKTR (True) or the A2C (False) algorithm should be used. ACKTR uses the K-FAC
+            optimizer and uses 32 filters in the third convolutional layer of the neural network instead of 64.
+        env_id: The string id passed to `gym.make()` to create the environments.
+        num_envs: The number of environments that will be used (implies the number of subprocesses). The default value
+            for A2C is 16, for ACKTR it is 32.
+        num_steps: The number of steps to take in each iteration. The default value for A2C is 5, for ACKTR it is 20.
+        save_path: The directory where the model is loaded from and saved.
+        model_name: The name of the model. The files in the `save_path` directory will use this name.
+    """
+
     # creates functions to create environments (binds values to make_atari_env)
     # render first environment to visualize the learning progress
     env_fns = [functools.partial(make_atari_env, env_id, render=i == 0) for i in range(num_envs)]
@@ -40,7 +53,7 @@ def train_a2c_acktr(acktr, env_id, num_envs, num_steps, save_path, model_name):
         cold_optimizer = ClipGlobalNormOptimizer(cold_optimizer, clip_norm=0.25)
 
         optimizer = ColdStartPeriodicInvUpdateKfacOpt(
-            cold_updates=30, cold_optimizer=cold_optimizer,
+            num_cold_updates=30, cold_optimizer=cold_optimizer,
             invert_every=10, learning_rate=0.25, cov_ema_decay=0.99, damping=0.01,
             layer_collection=layer_collection, momentum=0.9, norm_constraint=0.0001,  # trust region radius
             cov_devices=['/gpu:0'], inv_devices=['/gpu:0'])
@@ -101,18 +114,32 @@ def train_a2c_acktr(acktr, env_id, num_envs, num_steps, save_path, model_name):
 
 
 def make_atari_env(env_id, render):
+    """Creates a new `gym.Env` with the specified id and wraps it with all supported Atari wrappers.
+
+    Args:
+        env_id: The string id passed to `gym.make()`.
+        render: Whether this environment should be rendered.
+
+    Returns:
+        A new `gym.Env`.
+    """
+
     env = gym.make(env_id)
 
-    env = wrappers.AtariNoopResetWrapper(env, noop_max=30)  # sends the 'NOOP' action 30 times after a reset
+    # execute the 'NOOP' action a random number of times between 0 and 30 after a reset
+    env = wrappers.AtariNoopResetWrapper(env, noop_max=30)
 
     # use only 4th frame while repeating the action on the remaining 3 frames
     env = wrappers.AtariFrameskipWrapper(env, frameskip=4)
 
-    env = wrappers.AtariPreprocessFrameWrapper(env)  # extract luminance and scale down
-    env = wrappers.EpisodeInfoWrapper(env)  # stores episode info in 'info'
+    # preprocess (convert to grayscale and scale down) the observations in the subprocesses to decrease computation time
+    # the preprocessing should not be done on the gpu, since the amount of data that will be passed to the gpu will be
+    # drastically decreased, which is much less time-consuming
+    env = wrappers.AtariPreprocessFrameWrapper(env)
+    env = wrappers.EpisodeInfoWrapper(env)  # stores episode info in 'info' at the end of episode
     env = wrappers.AtariEpisodicLifeWrapper(env)  # terminate episodes after a life has been lost inside the game
 
-    # sends the 'FIRE' action after a reset (at start and after a life has been lost)
+    # execute the 'FIRE' action after a reset (at start and after a life has been lost)
     # this is required for most games to start
     env = wrappers.AtariFireResetWrapper(env)
 
@@ -127,7 +154,7 @@ def make_atari_env(env_id, render):
 
 
 if __name__ == '__main__':
-    acktr = True  # whether to use the K-FAC optimizer
+    acktr = True  # whether to use ACKTR or A2C
     env_id = 'SeaquestNoFrameskip-v4'  # id of the gym environment
     num_envs = 32  # number of multiple environments
     num_steps = 20  # number of steps per update
@@ -139,6 +166,6 @@ if __name__ == '__main__':
 
     train_a2c_acktr(acktr, env_id, num_envs, num_steps, save_path, model_name)
 
-    # If you encounter a InvalidArgumentError 'Received a label value of x which is outside the valid range of [0, x)',
+    # If you encounter an InvalidArgumentError 'Received a label value of x which is outside the valid range of [0, x)',
     # just restart the program until it works. This should only happen at the beginning of the learning process. This is
     # not intended and hopefully will be fixed in the future.

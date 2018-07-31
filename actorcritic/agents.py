@@ -2,15 +2,53 @@ from abc import ABCMeta, abstractmethod
 
 
 class Agent(object, metaclass=ABCMeta):
+    """Takes environments and a model (containing a policy) and provides a method `interact()`, which manages
+    operations such as selecting actions using the model and stepping in the environments. For example, this allows
+    multi-step agents (see `SingleEnvAgent` and `MultiEnvAgent`).
+    """
 
     @abstractmethod
     def interact(self, session):
+        """Samples actions from the model and steps in the environments.
+
+        Args:
+             session: the session to compute actions using the model.
+
+        Returns:
+            A tuple (observations, actions, rewards, terminals, next_observations, infos).
+
+            All values are in batch-major format, meaning that the rows determine the batch and the columns determine
+            the time: [batch, time]. In our case the rows correspond to the environments and the columns correspond to
+            the steps: [environment, step].
+            The opposite would be the time-major format: [time, batch] or [step, environment].
+
+            For example, if the agent maintains 3 environments and samples for 5 steps the results would consist of
+            a matrix (list of lists) with shape [3, 5]:
+
+                [ [step 1, step 2, step 3, step 4, step 5],   # environment 1
+                  [step 1, step 2, step 3, step 4, step 5],   # environment 2
+                  [step 1, step 2, step 3, step 4, step 5] ]  # environment 3
+
+            `observations`, `actions`, `rewards`, `terminals`, and `infos` are collected during sampling and each have
+            the shape [environments, steps].
+            `next_observations` contains the observations that the agent received at last, but did not use for selecting
+            actions yet. These e.g. could be used to bootstrap the remaining return. Has the shape [environments, 1].
+        """
         pass
 
 
 class SingleEnvAgent(Agent):
+    """An agent that maintains a single environment and samples multiple steps.
+    """
 
     def __init__(self, env, model, num_steps):
+        """Creates a new `SingleEnvAgent`.
+
+        Args:
+             env: The `gym.Env`.
+             model: The `actorcritic.model.ActorCriticModel` to sample actions from.
+             num_steps: The number of steps to take in each call to `interact()`.
+        """
         self._env = env
         self._model = model
         self._num_steps = num_steps
@@ -18,6 +56,25 @@ class SingleEnvAgent(Agent):
         self._observation = None  # stores observations between calls of `interact` to reuse `next_observations`
 
     def interact(self, session):
+        """Samples actions from the model and steps in the environment.
+
+        Args:
+             session: the session to compute actions using the model.
+
+        Returns:
+            A tuple (observations, actions, rewards, terminals, next_observations, infos).
+
+            All values are in batch-major format, meaning that the rows determine the batch and the columns determine
+            the time: [batch, time]. In our case we have one environment so the row corresponds to the environment and
+            the columns correspond to the steps: [1, step].
+            The opposite would be the time-major format: [time, batch] or [step, environment].
+
+            `observations`, `actions`, `rewards`, `terminals`, and `infos` are collected during sampling and each have
+            the shape [1, steps].
+            `next_observations` contains the observation that the agent received at last, but did not use for selecting
+            actions yet. This e.g. could be used to bootstrap the remaining return. Has the shape [1, 1].
+        """
+
         # setup time-major values [step]
         observation_steps = []
         action_steps = []
@@ -57,8 +114,17 @@ class SingleEnvAgent(Agent):
 
 
 class MultiEnvAgent(Agent):
+    """An agent that maintains multiple environments (via `actorcritic.multi_env.MultiEnv`) and samples multiple steps.
+    """
 
     def __init__(self, multi_env, model, num_steps):
+        """Creates a new `MultiEnvAgent`.
+
+        Args:
+             multi_env: The `actorcritic.multi_env.MultiEnv` that maintains multiple environments.
+             model: The `actorcritic.model.ActorCriticModel` to sample actions from.
+             num_steps: The number of steps to take in each call to `interact()`.
+        """
         self._env = multi_env
         self._model = model
         self._num_steps = num_steps
@@ -66,6 +132,32 @@ class MultiEnvAgent(Agent):
         self._observations = None  # stores observations between calls of `interact` to reuse `next_observations`
 
     def interact(self, session):
+        """Samples actions from the model and steps in the environment.
+
+        Args:
+             session: the session to compute actions using the model.
+
+        Returns:
+            A tuple (observations, actions, rewards, terminals, next_observations, infos).
+
+            All values are in batch-major format, meaning that the rows determine the batch and the columns determine
+            the time: [batch, time]. In our case the rows correspond to the environments and the columns correspond to
+            the steps: [environment, step].
+            The opposite would be the time-major format: [time, batch] or [step, environment].
+
+            For example, if the agent maintains 3 environments and samples for 5 steps the results would consist of
+            a matrix (list of lists) with shape [3, 5]:
+
+                [ [step 1, step 2, step 3, step 4, step 5],   # environment 1
+                  [step 1, step 2, step 3, step 4, step 5],   # environment 2
+                  [step 1, step 2, step 3, step 4, step 5] ]  # environment 3
+
+            `observations`, `actions`, `rewards`, `terminals`, and `infos` are collected during sampling and each have
+            the shape [environments, steps].
+            `next_observations` contains the observations that the agent received at last, but did not use for selecting
+            actions yet. These e.g. could be used to bootstrap the remaining return. Has the shape [environments, 1].
+        """
+
         # setup time-major values [step, env]
         observation_steps = []
         action_steps = []
@@ -108,7 +200,7 @@ class MultiEnvAgent(Agent):
 
 
 def transpose_list(values):
-    """Transposes a list of lists.
+    """Transposes a list of lists. Can be used to convert from time-major format to batch-major format and vice versa.
 
     e.g.     [ [1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12] ]
 
@@ -118,6 +210,6 @@ def transpose_list(values):
         values: The list of lists.
 
     Returns:
-        A list containing the tranposed lists.
+        A list containing the transposed lists.
     """
     return list(map(list, zip(*values)))  # taken from: https://stackoverflow.com/a/6473724

@@ -93,18 +93,21 @@ def create_subprocess_envs(env_fns):
 
     Args:
         env_fns: A list of callable functions that return a `gym.Env`. They should not be instances of `SubprocessEnv`
-        already.
+            already.
 
     Returns:
         A list of the created environments.
     """
+
+    # create processes and let them create the environments in parallel
     envs = []
     for env_fn in env_fns:
         env = SubprocessEnv(env_fn)
         env.start()
         envs.append(env)
 
-    # initialize environments in subprocesses
+    # call `initialize()`, which blocks the execution, in parallel using multiple threads
+    # this also ensures that the environments are created afterwards
     with concurrent.futures.ThreadPoolExecutor(len(envs)) as executor:
         for env in envs:
             executor.submit(env.initialize)
@@ -138,7 +141,8 @@ class SubprocessEnv(gym.Env):
     To use the subprocess `start()` has to be called first. After that `initialize()` has to be called to retrieve the
     observation space and action space from the underlying environment. The purpose of these methods is that multiple
     `SubprocessEnv`s can be created and started in parallel without blocking the execution, which creates the underlying
-    `gym.Env`s already. Afterwards `start()` can be called which blocks the execution.
+    `gym.Env`s already. Afterwards `start()` can be called which blocks the execution. See `create_subprocess_envs()`
+    above, which implements this idea.
     """
 
     class _Command:
@@ -149,8 +153,8 @@ class SubprocessEnv(gym.Env):
 
         Args:
             env_fn: A callable function that returns a `gym.Env`. It will be called inside the subprocess, so watch out
-            for referencing variables on the main process or the like. It possibly will be called multiple times, since
-            the subprocess will be recreated when it unexpectedly ends.
+                for referencing variables on the main process or the like. It possibly will be called multiple times,
+                since the subprocess will be recreated when it unexpectedly ends.
         """
         self._env_fn = env_fn
         self._parent_connection, self._child_connection, self._process = None, None, None
@@ -199,8 +203,6 @@ class SubprocessEnv(gym.Env):
     def initialize(self):
         """Initializes this `SubprocessEnv`. In fact retrieves the observation space and action space from the
         environment in the subprocess. This method blocks until execution is finished. The process has to be started.
-
-        :return:
         """
         self._check_closed()
 
@@ -215,7 +217,7 @@ class SubprocessEnv(gym.Env):
         try:
             return self._unsafe_communicate(command, arg)
         except (BrokenPipeError, ConnectionResetError, EOFError):
-            # TODO small bug: also restarts when exiting program with KeyboardInterrupt
+            # FIXME small bug: also restarts when exiting program with KeyboardInterrupt
 
             # restart process when connection is lost
             self._parent_connection.close()
