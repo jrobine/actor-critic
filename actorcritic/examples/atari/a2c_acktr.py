@@ -35,12 +35,12 @@ def train_a2c_acktr(acktr, env_id, num_envs, num_steps, save_path, model_name):
         model.register_layers(layer_collection)
         model.register_predictive_distributions(layer_collection)
 
-        # use SGD optimizer for the first few iterations, to prevent NaN values # TODO
-        cold_optimizer = tf.train.MomentumOptimizer(learning_rate=0.0007, momentum=0.9)
-        cold_optimizer = ClipGlobalNormOptimizer(cold_optimizer, clip_norm=0.5)
+        # use SGD optimizer for the first few iterations, to prevent NaN values  # TODO
+        cold_optimizer = tf.train.MomentumOptimizer(learning_rate=0.001, momentum=0.9)
+        cold_optimizer = ClipGlobalNormOptimizer(cold_optimizer, clip_norm=0.25)
 
         optimizer = ColdStartPeriodicInvUpdateKfacOpt(
-            cold_updates=20, cold_optimizer=cold_optimizer,
+            cold_updates=30, cold_optimizer=cold_optimizer,
             invert_every=10, learning_rate=0.25, cov_ema_decay=0.99, damping=0.01,
             layer_collection=layer_collection, momentum=0.9, norm_constraint=0.0001,  # trust region radius
             cov_devices=['/gpu:0'], inv_devices=['/gpu:0'])
@@ -92,9 +92,11 @@ def train_a2c_acktr(acktr, env_id, num_envs, num_steps, save_path, model_name):
                     print('Saved model (step {})'.format(step))
 
         except KeyboardInterrupt:
+            multi_env.close()
+
             # save when interrupted
             if step is not None:
-                #saver.save(session, save_path + '/' + model_name, step)
+                saver.save(session, save_path + '/' + model_name, step)
                 print('Saved model (step {})'.format(step))
 
 
@@ -136,3 +138,7 @@ if __name__ == '__main__':
     model_name = 'atari'
 
     train_a2c_acktr(acktr, env_id, num_envs, num_steps, save_path, model_name)
+
+    # If you encounter a InvalidArgumentError 'Received a label value of x which is outside the valid range of [0, x)',
+    # just restart the program until it works. This should only happen at the beginning of the learning process. This is
+    # not intended and hopefully will be fixed in the future.
