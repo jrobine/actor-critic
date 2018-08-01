@@ -41,7 +41,7 @@ class Agent(object, metaclass=ABCMeta):
                 the shape [`environments`, `steps`].
 
                 `next_observations` contains the observations that the agent received at last, but did not use for
-                selecting actions yet. These e.g. could be used to bootstrap the remaining returns. Has the shape
+                selecting actions yet. These e.g. can be used to bootstrap the remaining returns. Has the shape
                 [`environments`, `1`].
         """
         pass
@@ -89,7 +89,7 @@ class SingleEnvAgent(Agent):
                 the shape [`1`, `steps`].
 
                 `next_observations` contains the observation that the agent received at last, but did not use for
-                selecting an action yet. This e.g. could be used to bootstrap the remaining return.
+                selecting an action yet. This e.g. can be used to bootstrap the remaining return.
                 Has the shape [`1`, `1`].
         """
 
@@ -183,7 +183,7 @@ class MultiEnvAgent(Agent):
                 the shape [`environments`, `steps`].
 
                 `next_observations` contains the observations that the agent received at last, but did not use for
-                selecting actions yet. These e.g. could be used to bootstrap the remaining returns. Has the shape
+                selecting actions yet. These e.g. can be used to bootstrap the remaining returns. Has the shape
                 [`environments`, `1`].
         """
 

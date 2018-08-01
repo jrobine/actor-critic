@@ -1,8 +1,8 @@
 # Actor-Critic Reinforcement Learning
 
-This project intends to provide a documented and extensible implementation of the A2C and ACKTR algorithms by
-OpenAI.
-  
+This project intends to provide a documented and extensible
+implementation of the A2C and ACKTR algorithms by OpenAI.  
+
 Based on the paper by Wu, Mansimov, Liao, Grosse, and Ba (2017): https://arxiv.org/pdf/1708.05144.pdf  
 Original implementation: https://github.com/openai/baselines  
 
@@ -10,7 +10,8 @@ Original implementation: https://github.com/openai/baselines
 
 [![Documentation Status](https://readthedocs.org/projects/actor-critic/badge/?version=latest)](https://actor-critic.readthedocs.io/en/latest/?badge=latest)
 
-The API documentation and a short guide can be found on [Read the Docs](https://actor-critic.readthedocs.io/en/latest/).
+The API documentation and a quickstart guide can be found on
+[Read the Docs](https://actor-critic.readthedocs.io/en/latest/).
 
 ## Usage
 

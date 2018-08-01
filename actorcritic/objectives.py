@@ -28,7 +28,7 @@ class ActorCriticObjective(object, metaclass=ABCMeta):
         """
         pass
 
-    def minimize_separate(self, policy_optimizer, baseline_optimizer, policy_kwargs=None, baseline_kwargs=None):
+    def optimize_separate(self, policy_optimizer, baseline_optimizer, policy_kwargs=None, baseline_kwargs=None):
         """Creates an operation that minimizes the policy loss and the baseline loss separately. This means that it
         minimizes the losses using two different optimizers.
 
@@ -53,7 +53,7 @@ class ActorCriticObjective(object, metaclass=ABCMeta):
         baseline_op = baseline_optimizer.minimize(self.baseline_loss, **baseline_kwargs)
         return tf.group([policy_op, baseline_op])
 
-    def minimize_shared(self, optimizer, baseline_loss_weight, **kwargs):
+    def optimize_shared(self, optimizer, baseline_loss_weight=0.5, **kwargs):
         """Creates an operation that minimizes both the policy loss and the baseline loss using the same optimizer. This
         is used for models that share parameters between the policy and the baseline. The shared loss is defined as::
 
@@ -97,7 +97,7 @@ class A2CObjective(ActorCriticObjective):
         * https://arxiv.org/pdf/1708.05144.pdf  (A2C/ACKTR)
     """
 
-    def __init__(self, model, discount_factor, entropy_regularization_strength=0.01, name=None):
+    def __init__(self, model, discount_factor=0.99, entropy_regularization_strength=0.01, name=None):
         """
         Args:
             model (:obj:`~actorcritic.model.ActorCriticModel`):
@@ -113,7 +113,6 @@ class A2CObjective(ActorCriticObjective):
                 A name for this objective.
         """
         bootstrap_values = model.bootstrap_values
-        actions = model.actions_placeholder
         rewards = model.rewards_placeholder
         terminals = model.terminals_placeholder
 

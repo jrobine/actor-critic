@@ -91,6 +91,7 @@ class ActorCriticModel(object, metaclass=ABCMeta):
             The bootstrapped values that are computed based on the observations passed to
             the :attr:`bootstrap_observations_placeholder`.
         """
+        # TODO add `target_values` property, and don't do discounting in the objective?
         return self._bootstrap_values
 
     def _setup_placeholders(self, observation_space, action_space):

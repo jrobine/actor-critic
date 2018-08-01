@@ -1,6 +1,5 @@
 """An example of how to use A2C and ACKTR to learn to play an Atari game."""
 
-
 import functools
 import os
 
@@ -54,6 +53,8 @@ def train_a2c_acktr(acktr, env_id, num_envs, num_steps, save_path, model_name):
     # acktr uses only 32 filters in the last layer
     model = AtariModel(multi_env.observation_space, multi_env.action_space, 32 if acktr else 64)
 
+    agent = MultiEnvAgent(multi_env, model, num_steps)
+
     objective = A2CObjective(model, discount_factor=0.99, entropy_regularization_strength=0.01)
 
     if acktr:
@@ -79,9 +80,7 @@ def train_a2c_acktr(acktr, env_id, num_envs, num_steps, save_path, model_name):
     global_step = tf.train.get_or_create_global_step()
 
     # create optimizer operation for shared parameters
-    optimize_op = objective.minimize_shared(optimizer, baseline_loss_weight=0.5, global_step=global_step)
-
-    agent = MultiEnvAgent(multi_env, model, num_steps)
+    optimize_op = objective.optimize_shared(optimizer, baseline_loss_weight=0.5, global_step=global_step)
 
     with tf.Session() as session:
         session.run(tf.global_variables_initializer())
@@ -101,7 +100,7 @@ def train_a2c_acktr(acktr, env_id, num_envs, num_steps, save_path, model_name):
         step = None
         try:
             while True:
-                # sample trajectory batch
+                # sample batch of trajectories
                 observations, actions, rewards, terminals, next_observations, infos = agent.interact(session)
 
                 # update policy and baseline
