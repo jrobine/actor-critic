@@ -1,0 +1,6 @@
+tensorflow
+numpy
+git+https://github.com/tensorflow/kfac
+opencv-python
+gym
+atari-py
