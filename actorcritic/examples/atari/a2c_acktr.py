@@ -1,3 +1,6 @@
+"""An example of how to use A2C and ACKTR to learn to play an Atari game."""
+
+
 import functools
 import os
 
@@ -18,15 +21,25 @@ def train_a2c_acktr(acktr, env_id, num_envs, num_steps, save_path, model_name):
     """Trains an Atari model using A2C or ACKTR. Automatically saves and loads the trained model.
 
     Args:
-         acktr: A boolean that determines whether the ACKTR (True) or the A2C (False) algorithm should be used. ACKTR
-            uses the K-FAC optimizer and uses 32 filters in the third convolutional layer of the neural network instead
-            of 64.
-        env_id: A string id passed to `gym.make()` to create the environments.
-        num_envs: The number of environments that will be used (so `num_envs` subprocesses will be created).
+        acktr (:obj:`bool`):
+            Whether the ACKTR or the A2C algorithm should be used. ACKTR uses the K-FAC optimizer and uses 32 filters in
+            the third convolutional layer of the neural network instead of 64.
+
+        env_id (:obj:`string`):
+            An id passed to :meth:`gym.make` to create the environments.
+
+        num_envs (:obj:`int`):
+            The number of environments that will be used (so `num_envs` subprocesses will be created).
             A2C normally uses 16. ACKTR normally uses 32.
-        num_steps: The number of steps to take in each iteration. A2C normally uses 5. ACKTR normally uses 20.
-        save_path: A directory to load and save the model.
-        model_name: A name of the model. The files in the `save_path` directory will have this name.
+
+        num_steps (:obj:`int`):
+            The number of steps to take in each iteration. A2C normally uses 5. ACKTR normally uses 20.
+
+        save_path (:obj:`string`):
+            A directory to load and save the model.
+
+        model_name (:obj:`string`):
+            A name of the model. The files in the `save_path` directory will have this name.
     """
 
     # creates functions to create environments (binds values to make_atari_env)
@@ -115,14 +128,18 @@ def train_a2c_acktr(acktr, env_id, num_envs, num_steps, save_path, model_name):
 
 
 def make_atari_env(env_id, render):
-    """Creates a new `gym.Env` with the specified id and wraps it with all supported Atari wrappers.
+    """Creates a :obj:`gym.Env` and wraps it with all Atari wrappers in :mod:`actorcritic.envs.atari.wrappers`.
 
     Args:
-        env_id: A string id passed to `gym.make()`.
-        render: A boolean that determines whether this environment should be rendered.
+        env_id (:obj:`string`):
+            An id passed to :meth:`gym.make`.
+
+        render (:obj:`bool`):
+            Whether this environment should be rendered.
 
     Returns:
-        A `gym.Env`.
+        :obj:`gym.Env`:
+            The environment.
     """
     env = gym.make(env_id)
 

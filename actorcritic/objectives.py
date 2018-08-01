@@ -1,3 +1,6 @@
+"""Contains `objectives` that are used to optimize actor-critic models."""
+
+
 from abc import ABCMeta, abstractmethod
 
 import numpy as np
@@ -5,42 +8,46 @@ import tensorflow as tf
 
 
 class ActorCriticObjective(object, metaclass=ABCMeta):
-    """An objective takes an `actorcritic.model.ActorCriticModel` and determines how it is optimized. It defines the
-    loss of the policy and the loss of the baseline, and can create train operations based on these losses.
+    """An objective takes an :obj:`~actorcritic.model.ActorCriticModel` and determines how it is optimized. It defines
+    the loss of the policy and the loss of the baseline, and can create train operations based on these losses.
     """
 
     @property
     @abstractmethod
     def policy_loss(self):
-        """The loss of the policy of the model.
-
-        Returns:
-            A `tf.Tensor` that contains the loss.
+        """:obj:`tf.Tensor`:
+            The loss of the policy of the model.
         """
         pass
 
     @property
     @abstractmethod
     def baseline_loss(self):
-        """The loss of the baseline of the model.
-
-        Returns:
-            A `tf.Tensor` that contains the loss.
+        """:obj:`tf.Tensor`:
+            The loss of the baseline of the model.
         """
         pass
 
-    def minimize_separate(self, policy_optimizer, baseline_optimizer, policy_kwargs, baseline_kwargs):
+    def minimize_separate(self, policy_optimizer, baseline_optimizer, policy_kwargs=None, baseline_kwargs=None):
         """Creates an operation that minimizes the policy loss and the baseline loss separately. This means that it
         minimizes the losses using two different optimizers.
 
         Args:
-            policy_optimizer: A `tf.train.Optimizer` that is used for the policy loss.
-            baseline_optimizer: A `tf.train.Optimizer` that is used for the baseline loss.
-            policy_kwargs: Optional keyword arguments passed to the `minimize()` method of the `policy_optimizer`.
-            baseline_kwargs: Optional keyword arguments passed to the `minimize()` method of the `baseline_optimizer`.
+            policy_optimizer (:obj:`tf.train.Optimizer`):
+                An optimizer that is used for the policy loss.
+
+            baseline_optimizer (:obj:`tf.train.Optimizer`):
+                An optimizer that is used for the baseline loss.
+
+            policy_kwargs (:obj:`dict`, optional):
+                Keyword arguments passed to the :meth:`minimize` method of the `policy_optimizer`.
+
+            baseline_kwargs (:obj:`dict`, optional):
+                Keyword arguments passed to the :meth:`minimize` method of the `baseline_optimizer`.
 
         Returns:
-            A `tf.Operation` that updates both the policy and the baseline.
+            :obj:`tf.Operation`:
+                An operation that updates both the policy and the baseline.
         """
         policy_op = policy_optimizer.minimize(self.policy_loss, **policy_kwargs)
         baseline_op = baseline_optimizer.minimize(self.baseline_loss, **baseline_kwargs)
@@ -48,50 +55,62 @@ class ActorCriticObjective(object, metaclass=ABCMeta):
 
     def minimize_shared(self, optimizer, baseline_loss_weight, **kwargs):
         """Creates an operation that minimizes both the policy loss and the baseline loss using the same optimizer. This
-        is used for models that share parameters between the policy and the baseline. The shared loss is defined as,
+        is used for models that share parameters between the policy and the baseline. The shared loss is defined as::
 
             shared_loss = policy_loss + baseline_loss_weight * baseline_loss
 
-        where baseline_loss_weight determines the 'learning rate' relative to the policy loss.
+        where `baseline_loss_weight` determines the `'learning rate'` relative to the policy loss.
 
         Args:
-            optimizer: A `tf.train.Optimizer` that is used for both the policy loss and the baseline loss.
-            baseline_loss_weight: A scalar that determines the relative 'learning rate'.
-            kwargs: Optional keyword arguments passed to the `minimize()` method of the optimizer.
+            optimizer (:obj:`tf.train.Optimizer`):
+                An optimizer that is used for both the policy loss and the baseline loss.
+
+            baseline_loss_weight (:obj:`float` or :obj:`tf.Tensor`):
+                Determines the relative `'learning rate'`.
+
+            kwargs (:obj:`dict`, optional):
+                Keyword arguments passed to the :meth:`minimize` method of the optimizer.
 
         Returns:
-            A `tf.Operation` that updates both the policy and the baseline.
+            :obj:`tf.Operation`:
+                An operation that updates both the policy and the baseline.
         """
         shared_loss = self.policy_loss + baseline_loss_weight * self.baseline_loss
         return optimizer.minimize(shared_loss, **kwargs)
 
 
 class A2CObjective(ActorCriticObjective):
-    """An objective that defines the loss of the policy and the baseline according to the A3C and A2C/ACKTR papers:
-
-        https://arxiv.org/pdf/1602.01783.pdf  (A3C)
-        https://arxiv.org/pdf/1708.05144.pdf  (A2C/ACKTR)
+    """An objective that defines the loss of the policy and the baseline according to the A3C and A2C/ACKTR papers.
 
     The rewards are discounted and the policy loss uses entropy regularization. The baseline is optimized using a
     squared error loss.
 
-    The policy objective uses entropy regularization,
+    The policy objective uses entropy regularization::
 
         J(theta) = log(policy(state, action | theta)) * (target_values - baseline) + beta * entropy(policy)
 
-    where 'beta' determines the strength of the entropy regularization.
+    where `beta` determines the strength of the entropy regularization.
+
+    See Also:
+
+        * https://arxiv.org/pdf/1602.01783.pdf  (A3C)
+        * https://arxiv.org/pdf/1708.05144.pdf  (A2C/ACKTR)
     """
 
     def __init__(self, model, discount_factor, entropy_regularization_strength=0.01, name=None):
-        """Creates a new `A2CObjective`.
-
+        """
         Args:
-            model: An `actorcritic.model.ActorCriticModel` that provides the policy and the baseline that will be
-                optimized.
-            discount_factor: A discount factor used for discounting the rewards. Should be a scalar between [0, 1].
-            entropy_regularization_strength: A scalar determining the strength of the entropy regularization.
-                Corresponds to the 'beta' parameter in A3C.
-            name: An optional name of this objective.
+            model (:obj:`~actorcritic.model.ActorCriticModel`):
+                A model that provides the policy and the baseline that will be optimized.
+
+            discount_factor (:obj:`float`):
+                Used for discounting the rewards. Should be between [0, 1].
+
+            entropy_regularization_strength (:obj:`float` or :obj:`tf.Tensor`):
+                Determining the strength of the entropy regularization. Corresponds to the `beta` parameter in A3C.
+
+            name (:obj:`string`, optional):
+                A name for this objective.
         """
         bootstrap_values = model.bootstrap_values
         actions = model.actions_placeholder
@@ -102,9 +121,6 @@ class A2CObjective(ActorCriticObjective):
         baseline = model.baseline
 
         with tf.name_scope(name, 'A2CObjective'):
-            with tf.name_scope('log_prob'):
-                log_prob = policy.log_prob(tf.stop_gradient(actions))
-
             with tf.name_scope('target_values'):
                 discounted_rewards = _discount(rewards, terminals, discount_factor)
                 discounted_bootstrap_values = _discount_bootstrap(bootstrap_values, terminals, discount_factor)
@@ -117,7 +133,7 @@ class A2CObjective(ActorCriticObjective):
             with tf.name_scope('standard_policy_objective'):
                 # J(theta) = log(policy(state, action | theta)) * advantage
                 # TODO reduce_sum axis=1 ?
-                standard_policy_objective = tf.reduce_mean(advantage * log_prob)
+                standard_policy_objective = tf.reduce_mean(advantage * policy.log_prob)
 
             with tf.name_scope('entropy_regularization'):
                 with tf.name_scope('mean_entropy'):
@@ -140,19 +156,15 @@ class A2CObjective(ActorCriticObjective):
 
     @property
     def policy_loss(self):
-        """The loss of the policy of the model.
-
-        Returns:
-            A `tf.Tensor` that contains the loss.
+        """:obj:`tf.Tensor`:
+            The loss of the policy of the model.
         """
         return self._policy_loss
 
     @property
     def baseline_loss(self):
-        """The loss of the baseline of the model.
-
-        Returns:
-            A `tf.Tensor` that contains the loss.
+        """:obj:`tf.Tensor`:
+            The loss of the baseline of the model.
         """
         return self._baseline_loss
 

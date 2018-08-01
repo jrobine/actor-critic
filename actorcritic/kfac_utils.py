@@ -1,27 +1,33 @@
+"""Contains utilities that concern K-FAC."""
+
 import kfac
 import tensorflow as tf
 
 
 class ColdStartPeriodicInvUpdateKfacOpt(kfac.KfacOptimizer):
-    """A modified `kfac.KfacOptimizer`, based on the `kfac.PeriodicInvCovUpdateKfacOpt`, that runs the inverse operation
-    periodically and uses a standard SGD optimizer for a few updates in the beginning, called 'cold updates' using a
-    'cold optimizer'.
+    """A modified :obj:`~kfac.KfacOptimizer` that runs the inverse operation periodically and uses a standard SGD
+    optimizer for a few updates in the beginning, called `cold updates` and `cold optimizer`.
+
     This can be used to slowly initialize the parameters in the beginning before using the heavy K-FAC optimizer.
-    The covariances get updated every step (after the 'cold updates').
+    The covariances get updated every step (after the `cold updates`).
 
-    The idea is taken from the original ACKTR implementation:
+    See Also:
 
-        https://github.com/openai/baselines/blob/master/baselines/acktr/kfac.py
+        * :obj:`kfac.PeriodicInvCovUpdateKfacOpt`
+        * The idea is taken from the `original ACKTR implementation <https://github.com/openai/baselines/blob/master/baselines/acktr/kfac.py>`_.
     """
 
     def __init__(self, num_cold_updates, cold_optimizer, invert_every, **kwargs):
-        """Creates a new `ColdStartPeriodicInvUpdateKfacOpt`.
-
+        """
         Args:
-            num_cold_updates: The number of 'cold updates' in the beginning before using the actual K-FAC optimizer.
-            cold_optimizer: A `tf.train.Optimizer` to use for the 'cold updates'.
-            invert_every: The inverse operation gets called every `invert_every` steps (after the 'cold updates' have
-                finished).
+            num_cold_updates (:obj:`int`):
+                The number of `cold updates` in the beginning before using the actual K-FAC optimizer.
+
+            cold_optimizer (:obj:`tf.train.Optimizer`):
+                An optimizer that is used for the `cold updates`.
+
+            invert_every (:obj:`int`):
+                The inverse operation gets called every `invert_every` steps (after the `cold updates` have finished).
         """
         self._num_cold_updates = num_cold_updates
         self._cold_optimizer = cold_optimizer

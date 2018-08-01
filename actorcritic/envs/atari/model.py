@@ -1,3 +1,6 @@
+"""An implementation of an actor-critic model that is aimed at Atari games."""
+
+
 import gym
 import numpy as np
 import tensorflow as tf
@@ -9,43 +12,54 @@ from actorcritic.policies import SoftmaxPolicy
 
 
 class AtariModel(ActorCriticModel):
-    """An `actorcritic.model.ActorCriticModel` that follows the A3C and ACKTR paper. The network is originally used in:
-
-        https://www.nature.com/articles/nature14236
+    """An :obj:`~actorcritic.model.ActorCriticModel` that follows the A3C and ACKTR paper.
 
     The observations are sent to three convolutional layers followed by a fully connected layer, each using rectifier
     activation functions (ReLU). The policy and the baseline use fully connected layers built on top of the last hidden
     fully connected layer separately. The policy layer has one unit for each action and its outputs are used as logits
-    for a categorical distribution (SoftmaxPolicy). The baseline layer has only one unit which represents its value.
+    for a categorical distribution (softmax). The baseline layer has only one unit which represents its value.
+
     The weights of the layers are orthogonally initialized.
 
-    Detailed network structure:
-    - Conv2D: 32 filters 8x8, stride 4
-    - ReLU
-    - Conv2D: 64 filters 4x4, stride 2
-    - ReLU
-    - Conv2D: 64 filters 3x3, stride 1  (number of filters based on argument `conv3_num_filters`)
-    - Flatten
-    - Fully connected: 512 units
-    - ReLU
-    - Fully connected (policy): units = number of actions / Fully connected (baseline): 1 unit
+    Detailed network architecture:
+
+        - Conv2D: 32 filters 8x8, stride 4
+        - ReLU
+        - Conv2D: 64 filters 4x4, stride 2
+        - ReLU
+        - Conv2D: 64 filters 3x3, stride 1  (number of filters based on argument `conv3_num_filters`)
+        - Flatten
+        - Fully connected: 512 units
+        - ReLU
+        - Fully connected (policy): units = number of actions / Fully connected (baseline): 1 unit
 
     A2C uses 64 filters in the third convolutional layer. ACKTR uses 32.
 
-    The policy is a `actorcritic.policies.SoftmaxPolicy`. The baseline is a `actorcritic.baselines.StateValueFunction`.
+    The policy is a :obj:`~actorcritic.policies.SoftmaxPolicy`.
+    The baseline is a :obj:`~actorcritic.baselines.StateValueFunction`.
+
+    See Also:
+        This network architecture was originally used in: https://www.nature.com/articles/nature14236
     """
 
     def __init__(self, observation_space, action_space, conv3_num_filters=64, random_seed=None, name=None):
-        """Creates a new `AtariModel`.
+        """
+        Args:
+            observation_space (:obj:`gym.spaces.Space`):
+                A space that determines the shape of the :attr:`observations_placeholder` and the
+                :attr:`bootstrap_observations_placeholder`.
 
-        observation_space: A `gym.spaces.Box` determining the shape of the observations that will be passed to the
-            `observations_placeholder` and the `bootstrap_observations_placeholder`. Used to create these placeholders.
-        action_space: A `gym.spaces.Discrete` determining the shape of the actions that will be passed to the
-            `actions_placeholder`. Used to create this placeholder.
-        conv3_num_filters: An optional number of filters used for the third convolutional layer. ACKTR uses 32 instead
-            of 64.
-        random_seed: An optional random seed used for the `actorcritic.policies.SoftmaxPolicy`.
-        name: An optional name of this model.
+            action_space (:obj:`gym.spaces.Space`):
+                A space that determines the shape of the :attr:`actions_placeholder`.
+
+            conv3_num_filters (:obj:`int`, optional):
+                Number of filters used for the third convolutional layer, defaults to 64. ACKTR uses 32.
+
+            random_seed (:obj:`int`, optional):
+                A random seed used for sampling from the `~actorcritic.policies.SoftmaxPolicy`.
+
+            name (:obj:`string`, optional):
+                A name for this model.
         """
         super().__init__(observation_space, action_space)
 
@@ -61,7 +75,7 @@ class AtariModel(ActorCriticModel):
         # used to convert the outputs of the policy and the baseline back to the batch-major format of the inputs
         # because the values are flattened in between
         with tf.name_scope('shapes'):
-            observations_shape = tf.shape(self._observations_placeholder)
+            observations_shape = tf.shape(self.observations_placeholder)
             with tf.name_scope('input_shape'):
                 input_shape = observations_shape[:2]
                 with tf.name_scope('batch_size'):
@@ -69,15 +83,15 @@ class AtariModel(ActorCriticModel):
                 with tf.name_scope('num_steps'):
                     num_steps = input_shape[1]
             with tf.name_scope('bootstrap_input_shape'):
-                bootstrap_input_shape = tf.shape(self._bootstrap_observations_placeholder)[:1]
+                bootstrap_input_shape = tf.shape(self.bootstrap_observations_placeholder)[:1]
 
         num_stack = observation_space.shape[-1]
 
         # the observations are passed in uint8 to save memory and then converted to scalars in range [0,1] on the gpu
         # by dividing by 255
         with tf.name_scope('normalized_observations'):
-            normalized_observations = tf.cast(self._observations_placeholder, dtype=tf.float32) / 255.0
-            normalized_bootstrap_observations = tf.cast(self._bootstrap_observations_placeholder,
+            normalized_observations = tf.cast(self.observations_placeholder, dtype=tf.float32) / 255.0
+            normalized_bootstrap_observations = tf.cast(self.bootstrap_observations_placeholder,
                                                         dtype=tf.float32) / 255.0
 
         # convert from batch-major format [environment, step] to one flat vector [environment * step] by stacking the
@@ -103,7 +117,7 @@ class AtariModel(ActorCriticModel):
 
             with tf.name_scope('policy'):
                 policy_logits = tf.reshape(self._activations['fc_policy'], [batch_size, num_steps, self._num_actions])
-                self._policy = SoftmaxPolicy(policy_logits, random_seed)
+                self._policy = SoftmaxPolicy(policy_logits, self.actions_placeholder, random_seed)
 
             with tf.name_scope('baseline'):
                 baseline_logits = tf.reshape(self._activations['fc_baseline'], input_shape)
@@ -203,10 +217,12 @@ class AtariModel(ActorCriticModel):
         return preactivations, activations
 
     def register_layers(self, layer_collection):
-        """Registers the layers of this model (neural net) in the specified `kfac.LayerCollection` (required for K-FAC).
+        """Registers the layers of this model (neural net) in the specified :obj:`kfac.LayerCollection`
+        (required for K-FAC).
 
         Args:
-            layer_collection: A `kfac.LayerCollection`.
+            layer_collection (:obj:`kfac.LayerCollection`):
+                A layer collection used by the :obj:`~kfac.KfacOptimizer`.
         """
         layer_collection.register_conv2d(
             self._params['conv1'], strides=[1, 4, 4, 1], padding='VALID',

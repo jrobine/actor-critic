@@ -1,3 +1,6 @@
+"""Contains `policies` that determine the behavior of an `agent`."""
+
+
 from abc import ABCMeta, abstractmethod
 
 import tensorflow as tf
@@ -10,142 +13,146 @@ class Policy(object, metaclass=ABCMeta):
     @property
     @abstractmethod
     def sample(self):
-        """Samples actions from this policy based on the inputs that are provided for computing the probabilities.
-
-        Returns:
-            A `tf.Tensor` that samples the actions. The shape equals the shape of the inputs.
+        """:obj:`tf.Tensor`:
+            Samples actions from this policy based on the inputs that are provided for computing the probabilities. The
+            shape equals the shape of the inputs.
         """
         pass
 
     @property
     @abstractmethod
     def mode(self):
-        """Selects actions from this policy which have the highest probability (mode) based on the inputs that are
-        provided for computing the probabilities.
-
-        Returns:
-            A `tf.Tensor` that selects the actions. The shape equals the shape of the inputs.
+        """:obj:`tf.Tensor`:
+            Selects actions from this policy which have the highest probability (mode) based on the inputs that are
+            provided for computing the probabilities. The shape equals the shape of the inputs.
         """
         pass
 
     @property
     @abstractmethod
     def entropy(self):
-        """Computes the entropy of this policy based on the inputs that are provided for computing the probabilities.
-
-        Returns:
-            A `tf.Tensor` that computes the entropy values. The shape equals the shape of the inputs.
+        """:obj:`tf.Tensor`:
+            Computes the entropy of this policy based on the inputs that are provided for computing the probabilities.
+            The shape equals the shape of the inputs.
         """
         pass
 
+    @property
     @abstractmethod
-    def log_prob(self, actions, name=None):
-        """Computes the log-probability of the given actions based on the inputs that are provided for computing the
-        probabilities.
-
-        Args:
-            actions: A `tf.Tensor` that contains the actions. Must be of the same shape as the provided inputs.
-            name: An optional name of the operation.
-
-        Returns:
-            A `tf.Tensor` containing the log-probabilities. The shape equals the shape of the actions and the inputs.
+    def log_prob(self):
+        """:obj:`tf.Tensor`:
+            Computes the log-probability of the given actions based on the inputs that are provided for computing the
+            probabilities. The shape equals the shape of the actions and the inputs.
         """
         pass
 
     def register_predictive_distribution(self, layer_collection, random_seed=None):
-        """Registers the predictive distribution of this policy in the specified `kfac.LayerCollection`
+        """Registers the predictive distribution of this policy in the specified :obj:`kfac.LayerCollection`
         (required for K-FAC).
 
-        Policies that do not support K-FAC do not have to override this method.
-        In this case a `NotImplementedError` is raised.
-
         Args:
-            layer_collection: A `kfac.LayerCollection`.
-            random_seed: An optional random seed for sampling from the predictive distribution.
+            layer_collection (:obj:`kfac.LayerCollection`):
+                A layer collection used by the :obj:`~kfac.KfacOptimizer`.
+
+            random_seed (:obj:`int`, optional):
+                A random seed for sampling from the predictive distribution.
+
+        Raises:
+            :obj:`NotImplementedError`:
+                If this policy does not support K-FAC.
         """
         raise NotImplementedError()
 
 
 class DistributionPolicy(Policy, metaclass=ABCMeta):
-    """Base class for stochastic policies that follow a concrete `tf.distributions.Distribution`. Implements the
+    """Base class for stochastic policies that follow a concrete :obj:`tf.distributions.Distribution`. Implements the
     required methods based on this distribution.
     """
 
-    def __init__(self, distribution, random_seed=None):
-        """Creates a new `DistributionPolicy`.
-
+    def __init__(self, distribution, actions, random_seed=None):
+        """
         Args:
-             distribution: A subclass of `tf.distributions.Distribution`.
-             random_seed: An optional random seed used for sampling.
+            distribution (:obj:`tf.distributions.Distribution`):
+                The distribution.
+
+            actions (:obj:`tf.Tensor`):
+                The input actions used to compute the log-probabilities. Must have the same shape as the inputs.
+
+            random_seed (:obj:`int`, optional):
+                A random seed used for sampling.
         """
         self._distribution = distribution
 
         self._sample = tf.squeeze(distribution.sample(sample_shape=[], seed=random_seed, name='sample'), axis=-1)
         self._mode = tf.squeeze(distribution.mode(name='mode'), axis=-1)
         self._entropy = distribution.entropy(name='entropy')
+        self._log_prob = distribution.log_prob(tf.stop_gradient(tf.cast(actions, tf.int32)), name='log_prob')
 
     @property
     def sample(self):
-        """Samples actions from this policy based on the inputs that are provided for computing the probabilities.
-
-        Returns:
-            A `tf.Tensor` that samples the actions. The shape equals the shape of the inputs.
+        """:obj:`tf.Tensor`:
+            Samples actions from this policy based on the inputs that are provided for computing the probabilities. The
+            shape equals the shape of the inputs.
         """
         return self._sample
 
     @property
     def mode(self):
-        """Selects actions from this policy which have the highest probability (mode) based on the inputs that are
-        provided for computing the probabilities.
-
-        Returns:
-            A `tf.Tensor` that selects the actions. The shape equals the shape of the inputs.
+        """:obj:`tf.Tensor`:
+            Selects actions from this policy which have the highest probability (mode) based on the inputs that are
+            provided for computing the probabilities. The shape equals the shape of the inputs.
         """
         return self._mode
 
     @property
-    def entropy(self, name='entropy'):
-        """Computes the entropy of this policy based on the inputs that are provided for computing the probabilities.
-
-        Returns:
-            A `tf.Tensor` that computes the entropy values. The shape equals the shape of the inputs.
+    def entropy(self):
+        """:obj:`tf.Tensor`:
+            Computes the entropy of this policy based on the inputs that are provided for computing the probabilities.
+            The shape equals the shape of the inputs.
         """
         return self._entropy
 
-    def log_prob(self, actions, name='log_prob'):
-        """Computes the log-probability of the given actions based on the inputs that are provided for computing the
-        probabilities.
-
-        Args:
-            actions: A `tf.Tensor` that contains the actions. Must be of the same shape as the provided inputs.
-            name: An optional name of the operation.
-
-        Returns:
-            A `tf.Tensor` containing the log-probabilities. The shape equals the shape of the actions and the inputs.
+    @property
+    def log_prob(self):
+        """:obj:`tf.Tensor`:
+            Computes the log-probability of the given actions based on the inputs that are provided for computing the
+            probabilities. The shape equals the shape of the actions and the inputs.
         """
-        return self._distribution.log_prob(tf.cast(actions, tf.int32), name=name)
+        return self._log_prob
 
 
 class SoftmaxPolicy(DistributionPolicy):
     """A stochastic policy that follows a categorical distribution.
     """
 
-    def __init__(self, logits, random_seed=None, name=None):
-        """Creates a new `SoftmaxPolicy`.
-
-        Args:
-             logits: A `tf.Tensor` that contains the input logits (or 'scores') used to compute the probabilities.
+    def __init__(self, logits, actions, random_seed=None, name=None):
         """
-        with tf.variable_scope(name, 'SoftmaxPolicy'):
-            super().__init__(tf.distributions.Categorical(logits, name='distribution'), random_seed)
+        Args:
+            logits (:obj:`tf.Tensor`):
+                The input logits (or 'scores') used to compute the probabilities.
+
+            actions (:obj:`tf.Tensor`):
+                The input actions used to compute the log-probabilities. Must have the same shape as `logits`.
+
+            random_seed (:obj:`int`, optional):
+                A random seed used for sampling.
+
+            name (:obj:`string`, optional):
+                A name for this policy.
+        """
+        with tf.name_scope(name, 'SoftmaxPolicy'):
+            super().__init__(tf.distributions.Categorical(logits, name='distribution'), actions, random_seed)
 
     def register_predictive_distribution(self, layer_collection, random_seed=None):
-        """Registers the predictive distribution (categorical distribution) of this policy in the specified
-        `kfac.LayerCollection` (required for K-FAC).
+        """Registers the predictive distribution of this policy in the specified :obj:`kfac.LayerCollection`
+        (required for K-FAC).
 
         Args:
-            layer_collection: A `kfac.LayerCollection`.
-            random_seed: An optional random seed for sampling from the predictive distribution.
+            layer_collection (:obj:`kfac.LayerCollection`):
+                A layer collection used by the :obj:`~kfac.KfacOptimizer`.
+
+            random_seed (:obj:`int`, optional):
+                A random seed for sampling from the predictive distribution.
         """
         return layer_collection.register_categorical_predictive_distribution(
             logits=self._distribution.logits, seed=random_seed)

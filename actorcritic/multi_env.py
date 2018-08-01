@@ -1,3 +1,6 @@
+"""Contains classes that provide the ability to run multiple environments in subprocesses."""
+
+
 import concurrent.futures
 import multiprocessing
 import multiprocessing.managers
@@ -6,17 +9,17 @@ import gym
 
 
 class MultiEnv(object):
-    """An environment that maintains multiple `SubprocessEnv`s and executes them in parallel.
+    """An environment that maintains multiple :obj:`SubprocessEnv`\s and executes them in parallel.
 
-    The environments will be reset automatically when a terminal state is reached. That means that `reset()` actually
-    only has to be called once in the beginning.
+    The environments will be reset automatically when a terminal state is reached. That means that :meth:`reset`
+    actually only has to be called once in the beginning.
     """
 
     def __init__(self, envs):
-        """Create a new `MultiEnv`.
-
+        """
         Args:
-            envs: A list of `SubprocessEnv`s. The observation and action spaces must be equal across the environments.
+            envs (:obj:`list` of :obj:`SubprocessEnv`):
+                The environments. The observation and action spaces must be equal across the environments.
         """
         super().__init__()
         self._envs = [_AutoResetWrapper(env) for env in envs]
@@ -24,28 +27,22 @@ class MultiEnv(object):
 
     @property
     def envs(self):
-        """The environments.
-
-        Returns:
-            A list of `gym.Env`s.
+        """:obj:`list` of :obj:`gym.Env`:
+            The environments.
         """
         return self._envs
 
     @property
     def observation_space(self):
-        """The observation space used by all environments.
-
-        Returns:
-            A `gym.spaces.Space`.
+        """:obj:`gym.spaces.Space`:
+            The observation space used by all environments.
         """
         return self._envs[0].observation_space
 
     @property
     def action_space(self):
-        """The action space used by all environments.
-
-        Returns:
-            A `gym.spaces.Space`
+        """:obj:`gym.spaces.Space`:
+            The action space used by all environments.
         """
         return self._envs[0].action_space
 
@@ -53,7 +50,8 @@ class MultiEnv(object):
         """Resets all environments.
 
          Returns:
-            A list of observations received from each environment.
+            :obj:`list`:
+                A list of observations received from each environment.
         """
         observations = list(self._executor.map(lambda env: env.reset(), self._envs))
         return observations
@@ -62,11 +60,13 @@ class MultiEnv(object):
         """Proceeds one step in all environments.
 
         Args:
-            actions: A list of actions to be executed in the environments.
+            actions (:obj:`list`):
+                A list of actions to be executed in the environments.
 
         Returns:
-            A tuple of (observations, rewards, terminals, infos), where each element is a list containing the values
-            received from the environments.
+            :obj:`tuple`:
+                A tuple of (`observations`, `rewards`, `terminals`, `infos`). Each element is a list containing the
+                values received from the environments.
         """
 
         def call_step(env_action):
@@ -91,14 +91,15 @@ class MultiEnv(object):
 
 def create_subprocess_envs(env_fns):
     """Utility function that creates environments by calling the functions in `env_fns` and wrapping the returned
-    environments in `SubprocessEnv`s. These `SubprocessEnv`s will be started and initialized in parallel.
+    environments in :obj:`SubprocessEnv`\s. They will be started and initialized in parallel.
 
     Args:
-        env_fns: A list of callable functions that return a `gym.Env`. They should not be instances of `SubprocessEnv`
-            already.
+        env_fns (:obj:`list` of :obj:`callable`):
+            A list of functions that return a :obj:`gym.Env`. They should not be instances of :obj:`SubprocessEnv`.
 
     Returns:
-        A list of the created environments.
+        :obj:`list` of :obj:`SubprocessEnv`:
+            A list of the created environments.
     """
 
     # create processes and let them create the environments in parallel
@@ -137,26 +138,26 @@ class _AutoResetWrapper(gym.Wrapper):
 
 
 class SubprocessEnv(gym.Env):
-    """Maintains a `gym.Env` inside a subprocess, so it can run concurrently. If the subprocess ends unexpectedly, it
-    will be recreated automatically without interrupting the execution.
+    """Maintains a :obj:`gym.Env` inside a subprocess, so it can run concurrently. If the subprocess ends unexpectedly,
+    it will be recreated automatically without interrupting the execution.
 
-    To use the subprocess `start()` has to be called first. After that `initialize()` has to be called to retrieve the
-    observation space and the action space from the underlying environment. The purpose of these methods is that
-    multiple `SubprocessEnv`s can be created and started in parallel without blocking the execution, which creates the
-    underlying `gym.Env`s already. Afterwards `start()`, which blocks the execution, can be called in parallel.
-    See `create_subprocess_envs()` above, which implements this idea.
+    To use the subprocess :meth:`start` has to be called first. After that :meth:`initialize` has to be called to
+    retrieve the observation space and the action space from the underlying environment. The purpose of these methods is
+    that multiple :obj:`SubprocessEnv`\s can be created and started in parallel without blocking the execution, which
+    creates the underlying :obj:`gym.Env` already. Afterwards :meth:`start`, which blocks the execution, can be called
+    in parallel. See :meth:`create_subprocess_envs` which implements this idea.
     """
 
     class _Command:
         INIT, STEP, RESET, RENDER, CLOSE = range(5)
 
     def __init__(self, env_fn):
-        """Creates a new `SubprocessEnv`.
-
+        """
         Args:
-            env_fn: A callable function that returns a `gym.Env`. It will be called inside the subprocess, so watch out
-                for referencing variables on the main process or the like. It possibly will be called multiple times,
-                since the subprocess will be recreated when it unexpectedly ends.
+            env_fn (:obj:`callable`):
+                A function that returns a :obj:`gym.Env`. It will be called inside the subprocess, so watch out for
+                referencing variables on the main process or the like. It possibly will be called multiple times, since
+                the subprocess will be recreated when it unexpectedly ends.
         """
         self._env_fn = env_fn
         self._parent_connection, self._child_connection, self._process = None, None, None
@@ -166,8 +167,6 @@ class SubprocessEnv(gym.Env):
 
         self._action_space = None
         self._observation_space = None
-
-    # parent:
 
     def _check_closed(self):
         if self._process is None:
@@ -193,7 +192,7 @@ class SubprocessEnv(gym.Env):
         self._process.daemon = True
 
     def start(self):
-        """Starts the subprocess. Does not block. You should call `initialize()` afterwards.
+        """Starts the subprocess. Does not block. You should call :meth:`initialize` afterwards.
         """
         self._check_closed()
 
@@ -204,7 +203,7 @@ class SubprocessEnv(gym.Env):
 
     def initialize(self):
         """Retrieves the observation space and the action space from the environment in the subprocess. This method
-        blocks until the execution is finished. `start()` must have been called.
+        blocks until the execution is finished. :meth:`start` must have been called.
         """
         self._check_closed()
 
@@ -245,61 +244,62 @@ class SubprocessEnv(gym.Env):
 
     @property
     def action_space(self):
-        """The action space of the underlying environment. Does not block the execution. `start()` and `initialize()`
-        must have been called.
-
-        Returns:
-            A `gym.spaces.Space`.
+        """:obj:`gym.spaces.Space`:
+            The action space of the underlying environment. Does not block the execution. :meth:`start` and
+            :meth:`initialize` must have been called.
         """
         self._check_initialized('action_space')
         return self._action_space
 
     @property
     def observation_space(self):
-        """The observation space of the underlying environment. Does not block the execution. `start()` and
-        `initialize()` must have been called.
-
-        Returns:
-            A `gym.spaces.Space`.
+        """:obj:`gym.spaces.Space`:
+            The observation space of the underlying environment. Does not block the execution. :meth:`start` and
+            :meth:`initialize` must have been called.
         """
         self._check_initialized('observation_space')
         return self._observation_space
 
     def step(self, action):
-        """Remotely calls `step()` in the underlying environment. This method blocks until execution is finished.
-        `start()` and `initialize()` must have been called.
+        """Remotely calls :meth:`gym.Env.step` in the underlying environment. This method blocks until execution is
+        finished. :meth:`start` and :meth:`initialize` must have been called.
 
         Args:
-            action: The `action` argument passed to the `step()` call.
+            action:
+                The `action` argument passed to :meth:`gym.Env.step`.
 
         Returns:
-            A tuple of (observation, reward, terminal, info). The values returned by the `step()` call.
+            :obj:`tuple`:
+                A tuple of (`observation`, `reward`, `terminal`, `info`). The values returned by
+                :meth:`gym.Env.step`.
         """
         self._check_initialized('step()')
         return self._communicate(SubprocessEnv._Command.STEP, action)
 
     def reset(self, **kwargs):
-        """Remotely calls `reset()` in the underlying environment. This method blocks until execution is finished.
-        `start()` and `initialize()` must have been called.
+        """Remotely calls :meth:`gym.Env.reset` in the underlying environment. This method blocks until execution is
+        finished. :meth:`start` and :meth:`initialize` must have been called.
 
         Args:
-            kwargs: Keyword arguments passed to the `reset()` call.
+            kwargs (:obj:`dict`):
+                Keyword arguments passed to :meth:`gym.Env.reset`.
 
         Returns:
-            The value returned by the `reset()` call.
+            The value returned by :meth:`gym.Env.reset`.
         """
         self._check_initialized('reset()')
         return self._communicate(SubprocessEnv._Command.RESET, kwargs)
 
     def render(self, mode='human'):
-        """Remotely calls `render()` in the subprocess. This methods blocks until execution is finished. `start()` and
-        `initialize()` must have been called.
+        """Remotely calls :meth:`gym.Env.render` in the subprocess. This methods blocks until execution is finished.
+        :meth:`start` and :meth:`initialize` must have been called.
 
         Args:
-            mode: The `mode` argument passed to the `render()` call.
+            mode (:obj:`str`):
+                The `mode` argument passed to :meth:`gym.Env.render`.
 
         Returns:
-            The value returned by the `render()` call.
+            The value returned by :meth:`gym.Env.render`.
         """
         self._check_initialized('render()')
         if mode == 'human':
@@ -326,8 +326,6 @@ class SubprocessEnv(gym.Env):
 
         self._process.join()
         self._process = None
-
-    # child:
 
     @staticmethod
     def _child_worker(child_connection, env_fn):

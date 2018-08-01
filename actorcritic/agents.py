@@ -1,10 +1,14 @@
+"""Contains `agents`, which are an abstraction from environments."""
+
 from abc import ABCMeta, abstractmethod
 
 
 class Agent(object, metaclass=ABCMeta):
-    """Takes environments and a model (containing a policy) and provides a method `interact()`, which manages
-    operations such as selecting actions using the model and stepping in the environments. For example, this allows to
-    create multi-step agents (see `SingleEnvAgent` and `MultiEnvAgent`).
+    """Takes environments and a model (containing a policy) and provides :meth:`interact`, which manages operations
+    such as selecting actions from the model and stepping in the environments.
+
+    See Also:
+        This allows to create multi-step agents, like :obj:`SingleEnvAgent` and :obj:`MultiEnvAgent`.
     """
 
     @abstractmethod
@@ -12,27 +16,33 @@ class Agent(object, metaclass=ABCMeta):
         """Samples actions from the model, and steps in the environments.
 
         Args:
-             session: A `tf.Session` to compute actions using the model.
+            session (:obj:`tf.Session`):
+                A session that will be used to compute the actions.
 
         Returns:
-            A tuple (observations, actions, rewards, terminals, next_observations, infos).
+            :obj:`tuple`:
+                A tuple of (`observations`, `actions`, `rewards`, `terminals`, `next_observations`, `infos`).
 
-            All values are in batch-major format, meaning that the rows determine the batch and the columns determine
-            the time: [batch, time]. In our case the rows correspond to the environments and the columns correspond to
-            the steps: [environment, step].
-            The opposite would be the time-major format: [time, batch] or [step, environment].
+                All values are in `batch-major` format, meaning that the rows determine the batch and the columns
+                determine the time: [`batch`, `time`]. In our case the rows correspond to the environments and the
+                columns correspond to the steps: [`environment`, `step`].
+                The opposite is the `time-major` format: [`time`, `batch`] or [`step`, `environment`].
 
-            For example, if the agent maintains 3 environments and samples for 5 steps, the result would consist of
-            a matrix (list of lists) with shape [3, 5]:
+                Example:
 
-                [ [step 1, step 2, step 3, step 4, step 5],   # environment 1
-                  [step 1, step 2, step 3, step 4, step 5],   # environment 2
-                  [step 1, step 2, step 3, step 4, step 5] ]  # environment 3
+                    If the agent maintains `3` environments and samples for `5` steps, the result would consist of a
+                    matrix (:obj:`list` of :obj:`list`) with shape [`3`, `5`]::
 
-            `observations`, `actions`, `rewards`, `terminals`, and `infos` are collected during sampling and each has
-            the shape [environments, steps].
-            `next_observations` contains the observations that the agent received at last, but did not use for selecting
-            actions yet. These e.g. could be used to bootstrap the remaining returns. Has the shape [environments, 1].
+                        [ [step 1, step 2, step 3, step 4, step 5],   # environment 1
+                          [step 1, step 2, step 3, step 4, step 5],   # environment 2
+                          [step 1, step 2, step 3, step 4, step 5] ]  # environment 3
+
+                `observations`, `actions`, `rewards`, `terminals`, and `infos` are collected during sampling and have
+                the shape [`environments`, `steps`].
+
+                `next_observations` contains the observations that the agent received at last, but did not use for
+                selecting actions yet. These e.g. could be used to bootstrap the remaining returns. Has the shape
+                [`environments`, `1`].
         """
         pass
 
@@ -42,12 +52,16 @@ class SingleEnvAgent(Agent):
     """
 
     def __init__(self, env, model, num_steps):
-        """Creates a new `SingleEnvAgent`.
-
+        """
         Args:
-             env: A `gym.Env`.
-             model: An `actorcritic.model.ActorCriticModel` to sample actions from.
-             num_steps: The number of steps to take in each call of `interact()`.
+             env (:obj:`gym.Env`):
+                An environment.
+
+             model (:obj:`~actorcritic.model.ActorCriticModel`):
+                A model to sample actions.
+
+             num_steps (:obj:`int`):
+                The number of steps to take in :meth:`interact`.
         """
         self._env = env
         self._model = model
@@ -59,20 +73,24 @@ class SingleEnvAgent(Agent):
         """Samples actions from the model and steps in the environment.
 
         Args:
-             session: A `tf.Session` to compute actions using the model.
+             session (:obj:`tf.Session`):
+                A session that will be used to compute the actions.
 
         Returns:
-            A tuple (observations, actions, rewards, terminals, next_observations, infos).
+            :obj:`tuple`:
+                A tuple (`observations`, `actions`, `rewards`, `terminals`, `next_observations`, `infos`).
 
-            All values are in batch-major format, meaning that the rows determine the batch and the columns determine
-            the time: [batch, time]. In our case we have one environment so the row corresponds to the environment and
-            the columns correspond to the steps: [1, step].
-            The opposite would be the time-major format: [time, batch] or [step, 1].
+                All values are in `batch-major` format, meaning that the rows determine the batch and the columns
+                determine the time: [`batch`, `time`]. In our case we have `one` environment so the row corresponds to
+                the environment and the columns correspond to the steps: [`1`, `step`].
+                The opposite is the `time-major` format: [`time`, `batch`] or [`step`, `1`].
 
-            `observations`, `actions`, `rewards`, `terminals`, and `infos` are collected during sampling and each have
-            the shape [1, steps].
-            `next_observations` contains the observation that the agent received at last, but did not use for selecting
-            an action yet. This e.g. could be used to bootstrap the remaining return. Has the shape [1, 1].
+                `observations`, `actions`, `rewards`, `terminals`, and `infos` are collected during sampling and have
+                the shape [`1`, `steps`].
+
+                `next_observations` contains the observation that the agent received at last, but did not use for
+                selecting an action yet. This e.g. could be used to bootstrap the remaining return.
+                Has the shape [`1`, `1`].
         """
 
         # setup time-major values [step]
@@ -114,16 +132,21 @@ class SingleEnvAgent(Agent):
 
 
 class MultiEnvAgent(Agent):
-    """An agent that maintains multiple environments (via `actorcritic.multi_env.MultiEnv`) and samples multiple steps.
+    """An agent that maintains multiple environments (via :obj:`~actorcritic.multi_env.MultiEnv`) and samples multiple
+    steps.
     """
 
     def __init__(self, multi_env, model, num_steps):
-        """Creates a new `MultiEnvAgent`.
-
+        """
         Args:
-             multi_env: An `actorcritic.multi_env.MultiEnv`.
-             model: An `actorcritic.model.ActorCriticModel` to sample actions from.
-             num_steps: The number of steps to take in each call to `interact()`.
+             multi_env (:obj:`~actorcritic.multi_env.MultiEnv`):
+                Multiple environments.
+
+             model (:obj:`~actorcritic.model.ActorCriticModel`):
+                A model to sample actions.
+
+             num_steps (:obj:`int`):
+                The number of steps to take in :meth:`interact`.
         """
         self._env = multi_env
         self._model = model
@@ -135,27 +158,33 @@ class MultiEnvAgent(Agent):
         """Samples actions from the model, and steps in the environments.
 
         Args:
-             session: A `tf.Session` to compute actions using the model.
+             session (:obj:`tf.Session`):
+                A session that will be used to compute the actions.
 
         Returns:
-            A tuple (observations, actions, rewards, terminals, next_observations, infos).
+            :obj:`tuple`:
+                A tuple of (`observations`, `actions`, `rewards`, `terminals`, `next_observations`, `infos`).
 
-            All values are in batch-major format, meaning that the rows determine the batch and the columns determine
-            the time: [batch, time]. In our case the rows correspond to the environments and the columns correspond to
-            the steps: [environment, step].
-            The opposite would be the time-major format: [time, batch] or [step, environment].
+                All values are in `batch-major` format, meaning that the rows determine the batch and the columns
+                determine the time: [`batch`, `time`]. In our case the rows correspond to the environments and the
+                columns correspond to the steps: [`environment`, `step`].
+                The opposite is the `time-major` format: [`time`, `batch`] or [`step`, `environment`].
 
-            For example, if the agent maintains 3 environments and samples for 5 steps, the result would consist of
-            a matrix (list of lists) with shape [3, 5]:
+                Example:
 
-                [ [step 1, step 2, step 3, step 4, step 5],   # environment 1
-                  [step 1, step 2, step 3, step 4, step 5],   # environment 2
-                  [step 1, step 2, step 3, step 4, step 5] ]  # environment 3
+                    If the agent maintains `3` environments and samples for `5` steps, the result would consist of a
+                    matrix (:obj:`list` of :obj:`list`) with shape [`3`, `5`]::
 
-            `observations`, `actions`, `rewards`, `terminals`, and `infos` are collected during sampling and each has
-            the shape [environments, steps].
-            `next_observations` contains the observations that the agent received at last, but did not use for selecting
-            actions yet. These e.g. could be used to bootstrap the remaining returns. Has the shape [environments, 1].
+                        [ [step 1, step 2, step 3, step 4, step 5],   # environment 1
+                          [step 1, step 2, step 3, step 4, step 5],   # environment 2
+                          [step 1, step 2, step 3, step 4, step 5] ]  # environment 3
+
+                `observations`, `actions`, `rewards`, `terminals`, and `infos` are collected during sampling and have
+                the shape [`environments`, `steps`].
+
+                `next_observations` contains the observations that the agent received at last, but did not use for
+                selecting actions yet. These e.g. could be used to bootstrap the remaining returns. Has the shape
+                [`environments`, `1`].
         """
 
         # setup time-major values [step, env]
@@ -200,16 +229,29 @@ class MultiEnvAgent(Agent):
 
 
 def transpose_list(values):
-    """Transposes a list of lists. Can be used to convert from time-major format to batch-major format and vice versa.
+    """Transposes a list of lists. Can be used to convert from `time-major` format to `batch-major` format and vice
+    versa.
 
-    For example:  [ [1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12] ]
+    Example:
+        Input::
 
-    becomes:      [ [1, 5, 9], [2, 6, 10], [3, 7, 11], [4, 8, 12] ]
+            [[1, 2, 3, 4],
+             [5, 6, 7, 8],
+             [9, 10, 11, 12]]
+
+        Output::
+
+            [[1, 5, 9],
+             [2, 6, 10],
+             [3, 7, 11],
+             [4, 8, 12]]
 
     Args:
-        values: A list of lists.
+        values (:obj:`list` of :obj:`list`):
+            Values to transpose.
 
     Returns:
-        A list containing the transposed lists.
+        :obj:`list` of :obj:`list`:
+            The transposed values.
     """
     return list(map(list, zip(*values)))  # taken from: https://stackoverflow.com/a/6473724
