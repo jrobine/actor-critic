@@ -13,7 +13,7 @@ from actorcritic.agents import MultiEnvAgent
 from actorcritic.envs.atari.model import AtariModel
 from actorcritic.kfac_utils import ColdStartPeriodicInvUpdateKfacOpt
 from actorcritic.multi_env import MultiEnv, create_subprocess_envs
-from actorcritic.nn import ClipGlobalNormOptimizer
+from actorcritic.nn import ClipGlobalNormOptimizer, linear_decay
 from actorcritic.objectives import A2CObjective
 
 
@@ -56,8 +56,21 @@ def train_a2c_acktr(acktr, env_id, num_envs, num_steps, checkpoint_path, model_n
 
     objective = A2CObjective(model, discount_factor=0.99, entropy_regularization_strength=0.01)
 
-    optimizer = create_optimizer(acktr, model)
     global_step = tf.train.get_or_create_global_step()
+
+    # train for 10,000,000 'time steps', which equals 40,000,000 frames since we stack the last 4 frames
+    # since we are using the global_step we have to convert from 'time steps' to 'global steps' by dividing by the batch
+    # size for each update, i.e. the number of environments times the number of steps
+    max_step = 10000000 / (num_envs * num_steps)
+
+    if acktr:
+        # use a linear decaying learning rate from 0.25 to 0.025
+        learning_rate = linear_decay(0.25, 0.025, global_step, max_step, name='learning_rate')
+    else:
+        # use a linear decaying learning rate from 0.0007 to 0.00007
+        learning_rate = linear_decay(0.0007, 0.00007, global_step, max_step, name='learning_rate')
+
+    optimizer = create_optimizer(acktr, model, learning_rate)
 
     # create optimizer operation for shared parameters
     optimize_op = objective.optimize_shared(optimizer, baseline_loss_weight=0.5, global_step=global_step)
@@ -66,7 +79,7 @@ def train_a2c_acktr(acktr, env_id, num_envs, num_steps, checkpoint_path, model_n
         # placeholder for summary only
         episode_reward_placeholder = tf.placeholder(tf.float32, [])
 
-        # setup summaries if requested by the caller
+        # setup summaries if requested by the user
         if summary_path is not None:
             with tf.name_scope('model'):
                 tf.summary.scalar('policy_loss', objective.policy_loss)
@@ -88,9 +101,10 @@ def train_a2c_acktr(acktr, env_id, num_envs, num_steps, checkpoint_path, model_n
         saver = tf.train.Saver()
         load_model(saver, checkpoint_path, session)
 
-        step = None
+        step = session.run(global_step)
+
         try:
-            while True:
+            while step < max_step:
                 # sample batch of trajectories
                 observations, actions, rewards, terminals, next_observations, infos = agent.interact(session)
 
@@ -111,7 +125,7 @@ def train_a2c_acktr(acktr, env_id, num_envs, num_steps, checkpoint_path, model_n
                     episode_reward_placeholder: mean_episode_reward
                 })
 
-                # add summary if the caller requested summaries
+                # add summary if requested by the user
                 if summary_path is not None:
                     summary_writer.add_summary(summary, step)
                     # write through summaries every 10th step to get summaries faster into TensorBoard
@@ -126,8 +140,7 @@ def train_a2c_acktr(acktr, env_id, num_envs, num_steps, checkpoint_path, model_n
             print('Stop requested')
 
             # save the model if interrupted
-            if step is not None:
-                save_model(saver, checkpoint_path, model_name, step, session)
+            save_model(saver, checkpoint_path, model_name, step, session)
 
         finally:
             # end all subprocesses
@@ -202,7 +215,7 @@ def make_atari_env(env_id, render):
     return env
 
 
-def create_optimizer(acktr, model):
+def create_optimizer(acktr, model, learning_rate):
     """Creates an optimizer based on whether `ACKTR` or `A2C` is used. `A2C` uses the RMSProp optimizer, `ACKTR` uses
     the K-FAC optimizer. This function is not restricted to Atari models and can be used generally.
 
@@ -212,6 +225,9 @@ def create_optimizer(acktr, model):
 
         model (:obj:`~actorcritic.model.ActorCriticModel`):
             A model that is needed for K-FAC to register the neural network layers and the predictive distributions.
+
+        learning_rate (:obj:`float` or :obj:`tf.Tensor`):
+            A learning rate for the optimizer.
     """
 
     if acktr:
@@ -221,17 +237,17 @@ def create_optimizer(acktr, model):
         model.register_predictive_distributions(layer_collection)
 
         # use SGD optimizer for the first few iterations, to prevent NaN values  # TODO
-        cold_optimizer = tf.train.MomentumOptimizer(learning_rate=0.001, momentum=0.9)
-        cold_optimizer = ClipGlobalNormOptimizer(cold_optimizer, clip_norm=0.2)
+        cold_optimizer = tf.train.MomentumOptimizer(learning_rate=0.0003, momentum=0.9)
+        cold_optimizer = ClipGlobalNormOptimizer(cold_optimizer, clip_norm=0.5)
 
         optimizer = ColdStartPeriodicInvUpdateKfacOpt(
             num_cold_updates=30, cold_optimizer=cold_optimizer,
-            invert_every=10, learning_rate=0.25, cov_ema_decay=0.99, damping=0.01,
+            invert_every=10, learning_rate=learning_rate, cov_ema_decay=0.99, damping=0.01,
             layer_collection=layer_collection, momentum=0.9, norm_constraint=0.0001,  # trust region radius
             cov_devices=['/gpu:0'], inv_devices=['/gpu:0'])
 
     else:
-        optimizer = tf.train.RMSPropOptimizer(learning_rate=0.0007)
+        optimizer = tf.train.RMSPropOptimizer(learning_rate=learning_rate)
         optimizer = ClipGlobalNormOptimizer(optimizer, clip_norm=0.5)  # clip the gradients
 
     return optimizer
@@ -305,8 +321,6 @@ if __name__ == '__main__':
     model_name = 'Atari-' + env_id
 
     train_a2c_acktr(acktr, env_id, num_envs, num_steps, checkpoint_path, model_name, summary_path)
-
-    # TODO decaying learning rate
 
     # If you encounter an InvalidArgumentError 'Received a label value of x which is outside the valid range of [0, x)',
     # just restart the program until it works. This should only happen at the beginning of the learning process. This is
