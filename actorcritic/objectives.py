@@ -16,7 +16,7 @@ class ActorCriticObjective(object, metaclass=ABCMeta):
     @abstractmethod
     def policy_loss(self):
         """:obj:`tf.Tensor`:
-            The loss of the policy of the model.
+            The current loss of the policy of the model.
         """
         pass
 
@@ -24,7 +24,7 @@ class ActorCriticObjective(object, metaclass=ABCMeta):
     @abstractmethod
     def baseline_loss(self):
         """:obj:`tf.Tensor`:
-            The loss of the baseline of the model.
+            The current loss of the baseline of the model.
         """
         pass
 
@@ -136,8 +136,8 @@ class A2CObjective(ActorCriticObjective):
 
             with tf.name_scope('entropy_regularization'):
                 with tf.name_scope('mean_entropy'):
-                    mean_entropy = tf.reduce_mean(policy.entropy)
-                entropy_regularization = entropy_regularization_strength * mean_entropy
+                    self._mean_entropy = tf.reduce_mean(policy.entropy)
+                entropy_regularization = entropy_regularization_strength * self._mean_entropy
 
             with tf.name_scope('policy_objective'):
                 # full policy objective with entropy regularization:
@@ -156,16 +156,23 @@ class A2CObjective(ActorCriticObjective):
     @property
     def policy_loss(self):
         """:obj:`tf.Tensor`:
-            The loss of the policy of the model.
+            The current loss of the policy of the model.
         """
         return self._policy_loss
 
     @property
     def baseline_loss(self):
         """:obj:`tf.Tensor`:
-            The loss of the baseline of the model.
+            The current loss of the baseline of the model.
         """
         return self._baseline_loss
+
+    @property
+    def mean_entropy(self):
+        """:obj:`tf.Tensor`:
+            The current mean entropy of the policy of the model.
+        """
+        return self._mean_entropy
 
 
 def _discount(values, terminals, discount_factor):

@@ -292,3 +292,32 @@ class EpisodeInfoWrapper(gym.Wrapper):
     def reset(self, **kwargs):
         self.total_reward = 0.0
         return self.env.reset(**kwargs)
+
+    @staticmethod
+    def get_episode_rewards_from_info_batch(infos):
+        """Utility function that extracts the episode rewards, that are inserted by the :obj:`EpisodeInfoWrapper`, out
+        of the `infos`.
+
+        Args:
+            infos (:obj:`list` of :obj:`list`):
+                A batch-major list of `infos` as returned by :meth:`~actorcritic.agents.Agent.interact`.
+
+        Returns:
+            :obj:`numpy.ndarray`:
+                A batch-major array with the same shape as infos. It contains the episode reward of an `info` at the
+                corresponding position. If no episode reward was in an `info`, the result will contain
+                :obj:`numpy.nan` respectively.
+        """
+
+        rewards = np.full_like(infos, np.nan, np.float32)
+        environments, steps = rewards.shape
+
+        for environment in range(environments):
+            for step in range(steps):
+                info = infos[environment][step]
+
+                if 'episode' in info:
+                    reward = info['episode']['total_reward']
+                    rewards[environment, step] = reward
+
+        return rewards

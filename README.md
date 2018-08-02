@@ -49,3 +49,12 @@ details):
 ```
 $ python -m actorcritic.examples.atari.a2c_acktr
 ```
+
+If you encounter an InvalidArgumentError 'Received a label value of x which is outside the valid range of [0, x)',
+restart the program until it works. This is not intended and hopefully will be fixed in the future.
+
+You can visualize the learning progress by launching
+[TensorBoard](https://www.tensorflow.org/guide/summaries_and_tensorboard):
+```
+$ tensorboard --logdir ./results/summaries
+```

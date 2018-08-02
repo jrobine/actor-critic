@@ -1,8 +1,8 @@
 .idea
 
-model
-
 docs/_autosummary
 docs/_build
 docs/_static
 docs/_templates
+
+results
